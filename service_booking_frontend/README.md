@@ -5,7 +5,7 @@ Customer booking flow + admin dashboard for the Mobile Service Booking system.
 ## Requirements
 
 - Node.js + npm
-- Backend running locally (default: **http://localhost:3001**)
+- Backend running locally (default: **http://localhost:5000**)
 
 ## Environment variables
 
@@ -31,7 +31,7 @@ This project is configured with a CRA `proxy` so that in development you can cal
 - `GET /api/problems`
 - etc.
 
-…without CORS issues. By default, the proxy targets `http://localhost:3001`.
+…without CORS issues. By default, the proxy targets `http://localhost:5000`.
 
 In production builds, the app uses the configured `REACT_APP_API_BASE_URL` (defaulting to relative `/api`), so you should host the frontend behind a reverse proxy that forwards `/api/*` to the backend.
 
