@@ -694,10 +694,13 @@
   align-items:center;
   justify-content:center;
 
-  /* Remove any prior "transparent checkerboard" styling; keep clean. */
+  /* Must stay transparent so the gradient card (bg layer) is visible.
+     Also ensure no inherited background images (checkerboards) leak in. */
   background: transparent;
+  background-image: none;
 }
 
+/* The rendered device PNG itself must not introduce any background. */
 .lp-heroImageSlider__img{
   width: 100%;
   height: 100%;
@@ -707,9 +710,14 @@
   /* Transparent device renders should float naturally (no frame/border). */
   border-radius: 0;
   border: none;
+  background: transparent;
+  background-image: none;
+
+  /* Avoid blending/filters that can reveal unintended matte edges. */
+  mix-blend-mode: normal;
 
   /* Soft premium shadow to “ground” the device. */
-  filter: drop-shadow(0 24px 48px rgba(2, 6, 23, 0.24)) saturate(1.03) contrast(1.02);
+  filter: drop-shadow(0 22px 44px rgba(2, 6, 23, 0.22)) saturate(1.03) contrast(1.02);
 
   transform: translateY(2px);
   transition: transform 220ms ease, filter 220ms ease;

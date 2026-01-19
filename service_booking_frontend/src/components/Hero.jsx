@@ -2,13 +2,28 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import BookingFormCard from './BookingFormCard';
 import './landing.css';
 
-import iphone15Png from '../assets/hero/iphone-15.png';
-import galaxyS24UltraPng from '../assets/hero/galaxy-s24-ultra.png';
-import pixel6ProPng from '../assets/hero/pixel-6-pro.png';
-
 import { preloadImages, resolveDeviceImageUrl } from '../api/deviceImages';
 
 const SLIDE_INTERVAL_MS = 4500;
+
+// Local, always-available fallback SVG (inline data URI). We use this only if all CDN
+// candidates fail AND we want to avoid broken-image icons.
+// This is intentionally transparent/clean and contains no debug/checkerboard layers.
+const FALLBACK_DEVICE_SVG_DATA_URI =
+  'data:image/svg+xml;charset=utf-8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="860" viewBox="0 0 420 860">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff69b4" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#a855f7" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <rect x="70" y="30" rx="56" ry="56" width="280" height="800" fill="rgba(7,16,31,0.12)" />
+      <rect x="86" y="60" rx="42" ry="42" width="248" height="740" fill="url(#g)" />
+      <rect x="166" y="46" rx="10" ry="10" width="88" height="10" fill="rgba(7,16,31,0.18)"/>
+    </svg>`
+  );
 
 // PUBLIC_INTERFACE
 export default function Hero() {
@@ -19,17 +34,18 @@ export default function Hero() {
       {
         key: 'apple',
         alt: 'Apple iPhone device',
-        fallbackSrc: iphone15Png,
+        // Use the provided transparent PNG fallback (the resolver will try primary first).
+        fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2022/09/iPhone-14-Pro-Front.png',
       },
       {
         key: 'samsung',
         alt: 'Samsung Galaxy device',
-        fallbackSrc: galaxyS24UltraPng,
+        fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2023/02/Samsung-Galaxy-S23-Ultra-front.png',
       },
       {
         key: 'oneplus',
         alt: 'OnePlus device',
-        fallbackSrc: pixel6ProPng,
+        fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2023/01/OnePlus-11-front.png',
       },
     ],
     []
@@ -123,13 +139,22 @@ export default function Hero() {
   const activeSrc = resolvedUrls?.[activeSlide.key] || activeSlide.fallbackSrc;
 
   const handleImgError = (event) => {
-    // Robust fallback: if a remote image fails for any reason, swap to a known-good local asset.
+    // Robust fallback chain:
+    // 1) slide fallback URL (usually the provided transparent PNG)
+    // 2) global fallback URL
+    // 3) inline transparent SVG (prevents broken-image icon/white box in worst case)
+    //
     // Prevent infinite loops by only setting when different.
     const img = event.currentTarget;
 
-    const localFallback = activeSlide?.fallbackSrc || globalFallbackSrc;
-    if (localFallback && img.src !== localFallback) {
-      img.src = localFallback;
+    const urlFallback = activeSlide?.fallbackSrc || globalFallbackSrc;
+    if (urlFallback && img.src !== urlFallback) {
+      img.src = urlFallback;
+      return;
+    }
+
+    if (img.src !== FALLBACK_DEVICE_SVG_DATA_URI) {
+      img.src = FALLBACK_DEVICE_SVG_DATA_URI;
     }
   };
 
