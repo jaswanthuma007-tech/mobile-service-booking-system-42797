@@ -2,39 +2,27 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import BookingFormCard from './BookingFormCard';
 import './landing.css';
 
-const SLIDE_INTERVAL_MS = 4500;
+import iphone15Png from '../assets/hero/iphone-15.png';
+import galaxyS24UltraPng from '../assets/hero/galaxy-s24-ultra.png';
+import pixel6ProPng from '../assets/hero/pixel-6-pro.png';
 
-/**
- * Note: Using remote images here to avoid adding binary assets. If you later add
- * curated device PNGs into /public/assets, replace these URLs with /assets/... paths.
- */
+const SLIDE_INTERVAL_MS = 4500;
 
 // PUBLIC_INTERFACE
 export default function Hero() {
   /** Premium hero section: left headline/badges + right product image slider + booking card preserved. */
+
   const slides = useMemo(
     () => [
-      {
-        key: 'iphone-1',
-        alt: 'iPhone in soft pink lighting',
-        imageUrl:
-          'https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?auto=format&fit=crop&w=1400&q=80',
-      },
-      {
-        key: 'iphone-2',
-        alt: 'Close-up of a smartphone display',
-        imageUrl:
-          'https://images.unsplash.com/photo-1510557880182-3fdac13b39c5?auto=format&fit=crop&w=1400&q=80',
-      },
-      {
-        key: 'iphone-3',
-        alt: 'Premium smartphone on a desk',
-        imageUrl:
-          'https://images.unsplash.com/photo-1512499617640-c2f999018b72?auto=format&fit=crop&w=1400&q=80',
-      },
+      { key: 'iphone-15', alt: 'Apple iPhone mockup', src: iphone15Png },
+      { key: 'galaxy-s24-ultra', alt: 'Samsung Galaxy mockup', src: galaxyS24UltraPng },
+      { key: 'pixel-6-pro', alt: 'Google Pixel mockup', src: pixel6ProPng },
     ],
     []
   );
+
+  // Use a deterministic local fallback (first slide) to avoid blank states.
+  const fallbackSrc = slides[0]?.src;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -62,7 +50,36 @@ export default function Hero() {
     };
   }, [isPaused, slides.length]);
 
+  useEffect(() => {
+    // Preload all slide images once to ensure smooth transitions and avoid flashes/blank states.
+    slides.forEach((slide) => {
+      const img = new Image();
+      img.src = slide.src;
+    });
+  }, [slides]);
+
+  useEffect(() => {
+    // Also preload neighbor slides around the active index (helps when assets are large).
+    const next = slides[(activeIndex + 1) % slides.length];
+    const prev = slides[(activeIndex - 1 + slides.length) % slides.length];
+
+    [next, prev].forEach((slide) => {
+      if (!slide) return;
+      const img = new Image();
+      img.src = slide.src;
+    });
+  }, [activeIndex, slides]);
+
   const activeSlide = slides[activeIndex];
+
+  const handleImgError = (event) => {
+    // Robust fallback: if an image fails for any reason, swap to a known-good local asset.
+    // Also prevents infinite error loops by only setting when different.
+    const img = event.currentTarget;
+    if (fallbackSrc && img.src !== fallbackSrc) {
+      img.src = fallbackSrc;
+    }
+  };
 
   return (
     <section className="lp-hero lp-hero--slider" aria-label="Hero">
@@ -125,12 +142,21 @@ export default function Hero() {
             onMouseLeave={() => setIsPaused(false)}
             onFocusCapture={() => setIsPaused(true)}
             onBlurCapture={() => setIsPaused(false)}
-            aria-label="Featured iPhone images"
+            aria-label="Featured device images"
           >
             <div className="lp-heroImageSlider__bg" aria-hidden="true" />
 
             <div className="lp-heroImageSlider__viewport" aria-live="polite">
-              <img className="lp-heroImageSlider__img" src={activeSlide.imageUrl} alt={activeSlide.alt} loading="lazy" />
+              <img
+                key={activeSlide.key}
+                className="lp-heroImageSlider__img"
+                src={activeSlide.src}
+                alt={activeSlide.alt}
+                onError={handleImgError}
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+              />
             </div>
 
             <div className="lp-heroImageSlider__controls" aria-label="Slider controls">
