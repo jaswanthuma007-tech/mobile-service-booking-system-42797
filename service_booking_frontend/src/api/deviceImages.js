@@ -86,53 +86,66 @@ function writeCache(key, url, ttlMs) {
  * the task prefers PNG with transparent BG. Where possible we prioritize PNG first,
  * then fall back to SVG.
  *
- * @param {'apple'|'samsung'|'google'} brandKey
+ * @param {'apple'|'samsung'|'oneplus'} brandKey
  * @returns {string[]}
  */
 function buildBrandCandidates(brandKey) {
-  // DeviceFrames (SVG device frames) - very stable and transparent.
-  // Source repo: https://github.com/fakenickels/DeviceFrames (commonly used)
-  const deviceFramesBase = 'https://cdn.jsdelivr.net/gh/fakenickels/DeviceFrames@master';
+  /**
+   * NOTE:
+   * The hero slider requires specific public CDN endpoints for each device image.
+   * We keep a *small* ordered list of candidates per brand so:
+   * - primary URL is the specified CDN endpoint
+   * - secondary URLs can act as resilience (if the primary is temporarily unavailable)
+   *
+   * Caching + probing logic is implemented in resolveDeviceImageUrl; we only provide candidates here.
+   *
+   * If you need to swap endpoints again, update the PRIMARY_* constants below.
+   */
 
-  // BasicPixels (PNG device mockups) - provides PNGs in /devices; may vary by version.
-  // Source repo: https://github.com/BarzilaiRonen/BasicPixels (example) - used via jsDelivr.
-  // We include as candidates; if not found, loader will skip.
+  // Primary (specified) endpoints:
+  // TODO: These URLs must match the authoritative user-provided CDN endpoints.
+  // They were referenced in an attachment, but did not include the actual URLs. Keeping placeholders
+  // is not acceptable long-term; replace these with the real endpoints when available.
+  const PRIMARY_APPLE_IPHONE_URL = 'https://example-cdn.invalid/iphone.png';
+  const PRIMARY_SAMSUNG_URL = 'https://example-cdn.invalid/samsung.png';
+  const PRIMARY_ONEPLUS_URL = 'https://example-cdn.invalid/oneplus.png';
+
+  // Secondary resilience sources (public CDNs).
+  // DeviceFrames (SVG device frames) - stable and transparent.
+  const deviceFramesBase = 'https://cdn.jsdelivr.net/gh/fakenickels/DeviceFrames@master';
+  // BasicPixels (PNG device mockups) - may vary by repo contents; kept as best-effort.
   const basicPixelsBase = 'https://cdn.jsdelivr.net/gh/BarzilaiRonen/BasicPixels@master';
 
-  // A generic fallback source (SVG, transparent) from deviceframes; brand mapped to a common model.
-  // (We keep multiple candidates because upstream file names can differ.)
   switch (brandKey) {
     case 'apple':
       return [
-        // PNG attempts (may or may not exist)
+        PRIMARY_APPLE_IPHONE_URL,
+
+        // Resilience candidates:
         `${basicPixelsBase}/devices/Apple%20iPhone%2015%20Pro.png`,
         `${basicPixelsBase}/devices/iPhone%2015%20Pro.png`,
-        `${basicPixelsBase}/devices/iPhone15Pro.png`,
-
-        // SVG from DeviceFrames (more likely to exist)
         `${deviceFramesBase}/Screens/Apple%20iPhone%2015%20Pro%20Natural%20Titanium.svg`,
         `${deviceFramesBase}/Screens/Apple%20iPhone%2014%20Pro%20Space%20Black.svg`,
-        `${deviceFramesBase}/Screens/Apple%20iPhone%2013%20Pro%20Graphite.svg`,
       ];
     case 'samsung':
       return [
+        PRIMARY_SAMSUNG_URL,
+
+        // Resilience candidates:
         `${basicPixelsBase}/devices/Samsung%20Galaxy%20S24%20Ultra.png`,
         `${basicPixelsBase}/devices/Galaxy%20S24%20Ultra.png`,
-        `${basicPixelsBase}/devices/GalaxyS24Ultra.png`,
-
         `${deviceFramesBase}/Screens/Samsung%20Galaxy%20S24%20Ultra%20Titanium%20Black.svg`,
         `${deviceFramesBase}/Screens/Samsung%20Galaxy%20S23%20Ultra%20Phantom%20Black.svg`,
-        `${deviceFramesBase}/Screens/Samsung%20Galaxy%20S22%20Ultra%20Burgundy.svg`,
       ];
-    case 'google':
+    case 'oneplus':
       return [
-        `${basicPixelsBase}/devices/Google%20Pixel%208%20Pro.png`,
-        `${basicPixelsBase}/devices/Pixel%208%20Pro.png`,
-        `${basicPixelsBase}/devices/Pixel8Pro.png`,
+        PRIMARY_ONEPLUS_URL,
 
-        `${deviceFramesBase}/Screens/Google%20Pixel%208%20Pro%20Obsidian.svg`,
-        `${deviceFramesBase}/Screens/Google%20Pixel%207%20Pro%20Obsidian.svg`,
-        `${deviceFramesBase}/Screens/Google%20Pixel%206%20Pro%20Stormy%20Black.svg`,
+        // Resilience candidates (not guaranteed in public repos; kept best-effort):
+        `${basicPixelsBase}/devices/OnePlus%2012.png`,
+        `${basicPixelsBase}/devices/OnePlus%2011.png`,
+        `${deviceFramesBase}/Screens/OnePlus%2012%20Black.svg`,
+        `${deviceFramesBase}/Screens/OnePlus%2011%20Black.svg`,
       ];
     default:
       return [];
@@ -147,7 +160,7 @@ function buildBrandCandidates(brandKey) {
  * 3) fall back to provided local asset URL
  *
  * @param {{
- *   brandKey: 'apple'|'samsung'|'google',
+ *   brandKey: 'apple'|'samsung'|'oneplus',
  *   fallbackSrc: string,
  *   ttlMs?: number,
  *   timeoutMs?: number

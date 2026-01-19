@@ -27,8 +27,8 @@ export default function Hero() {
         fallbackSrc: galaxyS24UltraPng,
       },
       {
-        key: 'google',
-        alt: 'Google Pixel device',
+        key: 'oneplus',
+        alt: 'OnePlus device',
         fallbackSrc: pixel6ProPng,
       },
     ],
