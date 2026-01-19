@@ -53,11 +53,11 @@ export default function BookingConfirmation() {
         ) : null}
 
         <div className="actions__right">
-          <Link to="/booking">
-            <Button variant="primary">Create another booking</Button>
+          <Link to={bookingId ? `/track-status?id=${encodeURIComponent(String(bookingId))}` : '/track-status'}>
+            <Button variant="primary">Track</Button>
           </Link>
-          <Link to="/admin">
-            <Button variant="secondary">Admin dashboard</Button>
+          <Link to="/booking">
+            <Button variant="secondary">Book a new repair</Button>
           </Link>
         </div>
       </Card>

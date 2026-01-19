@@ -284,3 +284,13 @@ export async function adminUpdateStatus(bookingId, status) {
     body: { booking_id: bookingId, status }
   });
 }
+
+// PUBLIC_INTERFACE
+export async function trackBooking(bookingId, options = {}) {
+  /** Track a booking (returns { booking_id, current_status, created_at, history }). */
+  const id = Number(bookingId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new Error('Please enter a valid numeric booking ID.');
+  }
+  return requestJson(`/track/${id}`, options);
+}
