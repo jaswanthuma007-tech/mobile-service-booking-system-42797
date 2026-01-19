@@ -1,0 +1,563 @@
+{
+  "paths": {
+    "/": {
+      "get": {
+        "responses": {
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "tags": [
+          "Healt Check"
+        ]
+      }
+    },
+    "/api/brands": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Brand"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "List supported device brands.",
+        "tags": [
+          "Booking API"
+        ]
+      }
+    },
+    "/api/models": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Model"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "List models for a brand.",
+        "description": "Query params:\n- brand: integer brand id",
+        "tags": [
+          "Booking API"
+        ]
+      }
+    },
+    "/api/problems": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Problem"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "List common repair problems.",
+        "tags": [
+          "Booking API"
+        ]
+      }
+    },
+    "/api/booking": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Booking"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "Retrieve a booking by id.",
+        "description": "Query params:\n- id: booking id",
+        "tags": [
+          "Booking API"
+        ]
+      },
+      "post": {
+        "responses": {
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_ENTITY"
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingCreateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingCreate"
+              }
+            }
+          }
+        },
+        "summary": "Create a new booking.",
+        "description": "Returns:\n- booking_id: integer",
+        "tags": [
+          "Booking API"
+        ]
+      }
+    },
+    "/api/admin/bookings": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBookingsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "summary": "List bookings for admin dashboard.",
+        "description": "Optional query params:\n- status\n- brand_id\n- model_id\n- problem_id\n- search (matches name/email/phone)\n- limit (default 100, max 200)\n- offset (default 0)",
+        "tags": [
+          "Admin API"
+        ]
+      }
+    },
+    "/api/admin/update_status": {
+      "post": {
+        "responses": {
+          "422": {
+            "$ref": "#/components/responses/UNPROCESSABLE_ENTITY"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUpdateStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/DEFAULT_ERROR"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminUpdateStatus"
+              }
+            }
+          }
+        },
+        "summary": "Update a booking status.",
+        "description": "Body:\n- booking_id: int\n- status: one of new|in_progress|completed|cancelled",
+        "tags": [
+          "Admin API"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Mobile Service Booking API",
+    "version": "v1"
+  },
+  "tags": [
+    {
+      "name": "Healt Check",
+      "description": "Health check route"
+    },
+    {
+      "name": "Booking API",
+      "description": "Customer booking flow endpoints"
+    },
+    {
+      "name": "Admin API",
+      "description": "Admin endpoints for listing and updating bookings"
+    }
+  ],
+  "openapi": "3.0.3",
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "Error code"
+          },
+          "status": {
+            "type": "string",
+            "description": "Error name"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "errors": {
+            "type": "object",
+            "description": "Errors",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "PaginationMetadata": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "total_pages": {
+            "type": "integer"
+          },
+          "first_page": {
+            "type": "integer"
+          },
+          "last_page": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "previous_page": {
+            "type": "integer"
+          },
+          "next_page": {
+            "type": "integer"
+          }
+        }
+      },
+      "Brand": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Model": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "brand_id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brand_id",
+          "id",
+          "name"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Booking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "brand_id": {
+            "type": "integer"
+          },
+          "brand_name": {
+            "type": "string"
+          },
+          "model_id": {
+            "type": "integer"
+          },
+          "model_name": {
+            "type": "string"
+          },
+          "problem_id": {
+            "type": "integer"
+          },
+          "problem_name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brand_id",
+          "brand_name",
+          "created_at",
+          "customer_name",
+          "email",
+          "id",
+          "model_id",
+          "model_name",
+          "phone",
+          "problem_id",
+          "problem_name",
+          "status"
+        ]
+      },
+      "BookingCreate": {
+        "type": "object",
+        "properties": {
+          "customer_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 40
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "brand_id": {
+            "type": "integer"
+          },
+          "model_id": {
+            "type": "integer"
+          },
+          "problem_id": {
+            "type": "integer"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true
+          }
+        },
+        "required": [
+          "brand_id",
+          "customer_name",
+          "email",
+          "model_id",
+          "phone",
+          "problem_id"
+        ]
+      },
+      "BookingCreateResponse": {
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "booking_id"
+        ]
+      },
+      "AdminBookingList": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "customer_name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "status": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "brand_name": {
+            "type": "string"
+          },
+          "model_name": {
+            "type": "string"
+          },
+          "problem_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brand_name",
+          "created_at",
+          "customer_name",
+          "email",
+          "id",
+          "model_name",
+          "phone",
+          "problem_name",
+          "status"
+        ]
+      },
+      "AdminBookingsResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminBookingList"
+            }
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "AdminUpdateStatus": {
+        "type": "object",
+        "properties": {
+          "booking_id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "in_progress",
+              "completed",
+              "cancelled"
+            ]
+          }
+        },
+        "required": [
+          "booking_id",
+          "status"
+        ]
+      },
+      "AdminUpdateStatusResponse": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "updated"
+        ]
+      }
+    },
+    "responses": {
+      "DEFAULT_ERROR": {
+        "description": "Default error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "UNPROCESSABLE_ENTITY": {
+        "description": "Unprocessable Entity",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}
