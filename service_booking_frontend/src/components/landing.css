@@ -689,7 +689,11 @@
   position: relative;
   z-index: 1;
   padding: 16px;
-  height: 360px;
+
+  /* Fluid, responsive height with a sensible cap to keep the hero balanced.
+     Keeps object-fit: contain working while avoiding oversized cards on wide screens. */
+  height: clamp(240px, 34vw, 360px);
+
   display:flex;
   align-items:center;
   justify-content:center;

@@ -33,18 +33,18 @@ export default function Hero() {
     () => [
       {
         key: 'apple',
-        alt: 'Apple iPhone device',
-        // Use the provided transparent PNG fallback (the resolver will try primary first).
+        alt: 'Apple iPhone device (front)',
+        // Authoritative fallback PNG; primary is resolved in deviceImages.js.
         fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2022/09/iPhone-14-Pro-Front.png',
       },
       {
         key: 'samsung',
-        alt: 'Samsung Galaxy device',
+        alt: 'Samsung Galaxy S23 Ultra device (front)',
         fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2023/02/Samsung-Galaxy-S23-Ultra-front.png',
       },
       {
         key: 'oneplus',
-        alt: 'OnePlus device',
+        alt: 'OnePlus 11 device (front)',
         fallbackSrc: 'https://www.gizmochina.com/wp-content/uploads/2023/01/OnePlus-11-front.png',
       },
     ],
