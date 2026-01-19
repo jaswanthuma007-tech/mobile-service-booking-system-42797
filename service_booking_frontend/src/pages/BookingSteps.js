@@ -6,8 +6,8 @@ import { getApiStatus, getBrands, getModels, getProblems } from '../api/client';
 
 const STEPS = [
   { key: 'brand', label: 'Select Brand' },
-  { key: 'model', label: 'Select Model' },
-  { key: 'problem', label: 'Select Problem' }
+  { key: 'services', label: 'Popular Services' },
+  { key: 'model', label: 'Select Model' }
 ];
 
 /**
@@ -110,8 +110,10 @@ export default function BookingSteps() {
 
   const canGoNext = useMemo(() => {
     if (stepIndex === 0) return Boolean(selectedBrandId);
-    if (stepIndex === 1) return Boolean(selectedModelId);
-    if (stepIndex === 2) return Boolean(selectedProblemId);
+    // Step 1 is “Popular Services” (handled as a route). Only allow Next if we have both brand and a chosen service.
+    if (stepIndex === 1) return Boolean(selectedBrandId) && Boolean(selectedProblemId);
+    // Step 2 is model selection.
+    if (stepIndex === 2) return Boolean(selectedModelId);
     return false;
   }, [stepIndex, selectedBrandId, selectedModelId, selectedProblemId]);
 
@@ -205,19 +207,24 @@ export default function BookingSteps() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // When brand changes: fetch models; reset dependent selections.
-  // Also: cancel in-flight fetch to prevent stale model lists when user clicks brands quickly.
+  // When brand changes: reset dependent selections (service + model).
+  useEffect(() => {
+    setSelectedModelId('');
+    setSelectedProblemId('');
+    setModels([]);
+    setProblems([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrandId]);
+
+  // Keep model loading here (step 2), after service selection is done.
   useEffect(() => {
     const ac = new AbortController();
     let done = false;
 
     async function loadModelsForBrand() {
-      setModels([]);
-      setSelectedModelId('');
-      setSelectedProblemId('');
-      setProblems([]);
-
       if (!selectedBrandId) return;
+      // Only load models when user is on the model step to keep transitions clean.
+      if (stepIndex !== 2) return;
 
       setError('');
       setLoadingModels(true);
@@ -225,10 +232,6 @@ export default function BookingSteps() {
         const m = await getModels(Number(selectedBrandId), { signal: ac.signal });
         if (done) return;
         setModels(m || []);
-
-        // Auto-advance only after models are loaded, to avoid empty step.
-        // Keep smooth transitions via goToStep scroll animation.
-        goToStep(1);
       } catch (e) {
         if (done) return;
         const msg = toUserFacingError(e, 'Failed to load models.');
@@ -244,17 +247,15 @@ export default function BookingSteps() {
       done = true;
       ac.abort();
     };
-  }, [selectedBrandId]);
+  }, [selectedBrandId, stepIndex]);
 
-  // When model changes: load problems; reset problem selection.
+  // We still keep problems loading in this component for the legacy (in-page) flow,
+  // but the primary services selection is now handled by /popular-services.
   useEffect(() => {
     const ac = new AbortController();
     let done = false;
 
-    async function loadProblemsForModel() {
-      setSelectedProblemId('');
-      setProblems([]);
-
+    async function loadProblemsLegacy() {
       if (!selectedModelId) return;
 
       setError('');
@@ -273,7 +274,7 @@ export default function BookingSteps() {
       }
     }
 
-    loadProblemsForModel();
+    loadProblemsLegacy();
     return () => {
       done = true;
       ac.abort();
@@ -281,18 +282,16 @@ export default function BookingSteps() {
   }, [selectedModelId]);
 
   function handleSelectBrand(id) {
-    setSelectedBrandId(String(id));
-    // Auto-advance is handled after models load (effect), to keep the step from showing empty state.
+    const nextBrandId = String(id);
+    setSelectedBrandId(nextBrandId);
+
+    // Navigate into Popular Services; include brandId and preserve current brand search query.
+    const qs = buildQuery({ brandId: nextBrandId, q: brandSearch });
+    navigate(`/popular-services${qs}`);
   }
 
   function handleSelectModel(id) {
     setSelectedModelId(String(id));
-    // Auto-advance to service step
-    goToStep(2);
-  }
-
-  function handleSelectProblem(id) {
-    setSelectedProblemId(String(id));
   }
 
   function handleConfirm() {
@@ -444,12 +443,28 @@ export default function BookingSteps() {
           </section>
 
           <section
-            ref={modelRef}
             className={`bf3-panel ${stepIndex === 1 ? 'is-active' : ''}`}
+            aria-label="Popular services"
+          >
+            <div className="bf3-panel__head">
+              <h3 style={{ margin: 0 }}>2) Popular Services</h3>
+              <p style={{ margin: '6px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>
+                This step opens a dedicated services page after you choose a brand.
+              </p>
+            </div>
+
+            <div className="bf3-empty">
+              Select a brand above to see popular services.
+            </div>
+          </section>
+
+          <section
+            ref={modelRef}
+            className={`bf3-panel ${stepIndex === 2 ? 'is-active' : ''}`}
             aria-label="Select model"
           >
             <div className="bf3-panel__head">
-              <h3 style={{ margin: 0 }}>2) Select Model</h3>
+              <h3 style={{ margin: 0 }}>3) Select Model</h3>
               <p style={{ margin: '6px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>
                 {selectedBrand ? (
                   <>
@@ -488,53 +503,6 @@ export default function BookingSteps() {
                 })
               )}
             </div>
-          </section>
-
-          <section
-            ref={problemRef}
-            className={`bf3-panel ${stepIndex === 2 ? 'is-active' : ''}`}
-            aria-label="Select problem"
-          >
-            <div className="bf3-panel__head">
-              <h3 style={{ margin: 0 }}>3) Select Problem</h3>
-              <p style={{ margin: '6px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>
-                {selectedModel ? (
-                  <>
-                    Device: <strong>{selectedBrand?.name}</strong> / <strong>{selectedModel.name}</strong>
-                  </>
-                ) : (
-                  'Select a model first.'
-                )}
-              </p>
-            </div>
-
-            <div className="bf3-grid" role="list">
-              {!selectedModelId ? (
-                <div className="bf3-empty">Pick a model to see problems.</div>
-              ) : loadingProblems ? (
-                <div className="bf3-empty">Loading problems…</div>
-              ) : (problems || []).length === 0 ? (
-                <div className="bf3-empty">No problems available.</div>
-              ) : (
-                (problems || []).map((p) => {
-                  const active = String(p.id) === String(selectedProblemId);
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      className={`bf3-choice ${active ? 'is-selected' : ''}`}
-                      onClick={() => handleSelectProblem(p.id)}
-                      role="listitem"
-                      aria-pressed={active}
-                      disabled={!selectedModelId || loadingProblems}
-                    >
-                      <span className="bf3-choice__title">{p.name}</span>
-                      <span className="bf3-choice__meta">{active ? 'Selected' : 'Select'}</span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
 
             <div className="bf3-confirm">
               <div className="bf3-confirm__summary" aria-label="Selection summary">
@@ -542,15 +510,15 @@ export default function BookingSteps() {
                   <strong>Brand:</strong> {selectedBrand?.name || '—'}
                 </div>
                 <div>
-                  <strong>Model:</strong> {selectedModel?.name || '—'}
+                  <strong>Service:</strong> {selectedProblem?.name || '—'}
                 </div>
                 <div>
-                  <strong>Problem:</strong> {selectedProblem?.name || '—'}
+                  <strong>Model:</strong> {selectedModel?.name || '—'}
                 </div>
               </div>
 
-              <Button variant="primary" onClick={handleConfirm} disabled={!selectedProblemId}>
-                Confirm Booking
+              <Button variant="primary" onClick={handleConfirm} disabled={!selectedModelId || !selectedProblemId}>
+                Continue to Booking
               </Button>
             </div>
           </section>
