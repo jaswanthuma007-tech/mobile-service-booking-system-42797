@@ -49,19 +49,29 @@ Open: http://localhost:3000
 When running in a workspace preview environment, the dev server may be accessed via a hostname
 different from `localhost`, which can cause CRA to show **"Invalid Host header"**.
 
-This repo includes a development-only file `.env.development.local` that:
-- binds the dev server to `0.0.0.0`, and
-- disables CRA's host checking in development (`DANGEROUSLY_DISABLE_HOST_CHECK=true`).
+This repo is configured to:
+- bind the dev server to `0.0.0.0` (`HOST=0.0.0.0`), and
+- disable CRA's host checking in development (`DANGEROUSLY_DISABLE_HOST_CHECK=true`).
 
-This does **not** affect production builds (`npm run build`).
+These settings are **development only** and do **not** affect production builds (`npm run build`).
+
+### Restart required
+CRA reads `.env` variables only at startup. If you change host-related variables, **restart the dev server**:
+
+```bash
+# stop the running dev server (Ctrl+C) then:
+npm start
+```
 
 ### Confirming the `/api` proxy still works
 
-We intentionally do **not** override `REACT_APP_API_BASE_URL` in `.env.development.local`.
-In development, API calls should remain **relative** (e.g. `/api/brands`) so CRA can proxy them
-(using `package.json -> proxy: http://localhost:5000`).
+We intentionally keep API calls **relative** (e.g. `/api/brands`) so CRA can proxy them.
 
-If you set `REACT_APP_API_BASE_URL` to an absolute URL, CRA proxying will be bypassed.
+Proxying is preserved by:
+- `package.json -> proxy: http://localhost:5000`, and
+- `src/setupProxy.js` (which additionally supports proxying to `REACT_APP_BACKEND_URL` in hosted environments).
+
+If you set `REACT_APP_API_BASE_URL` to an **absolute** URL, CRA proxying will be bypassed.
 
 ## Routes
 
