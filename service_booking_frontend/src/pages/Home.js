@@ -4,7 +4,7 @@ import { AppShell, Card, Button } from '../components/UI';
 
 // PUBLIC_INTERFACE
 export default function Home() {
-  /** Landing page with navigation to customer and admin areas. */
+  /** Legacy landing page (kept for reference); the commercial landing is now at '/'. */
   return (
     <AppShell
       rightSlot={
@@ -22,7 +22,8 @@ export default function Home() {
         <Card>
           <h1 style={{ margin: 0, letterSpacing: '-0.03em' }}>Fast, friendly mobile repair booking</h1>
           <p style={{ color: 'rgba(17, 24, 39, 0.70)', lineHeight: 1.6 }}>
-            Complete a quick multi-step form to request service. You’ll get a booking ID instantly.
+            This is the legacy home page. The new commercial landing experience is now available at{' '}
+            <Link to="/" style={{ fontWeight: 900 }}>“/”</Link>.
           </p>
           <div className="actions__right">
             <Link to="/booking">

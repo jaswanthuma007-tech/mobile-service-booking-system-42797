@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, Alert, Button, Card, Select, Stepper, TextArea, TextInput } from '../components/UI';
 import { createBooking, getBrands, getModels, getProblems } from '../api/client';
 
@@ -27,6 +27,7 @@ function formatDateTime(s) {
 export default function BookingFlow() {
   /** Customer booking multi-step flow; creates booking via POST /api/booking. */
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [step, setStep] = useState(0);
 
@@ -52,6 +53,23 @@ export default function BookingFlow() {
   const [submitLoading, setSubmitLoading] = useState(false);
 
   const [error, setError] = useState('');
+
+  // Apply prefills from landing page (query params: name, phone, pincode)
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search || '');
+    const preName = qs.get('name') || '';
+    const prePhone = qs.get('phone') || '';
+    const prePincode = qs.get('pincode') || '';
+
+    if (preName && !customerName) setCustomerName(preName);
+    if (prePhone && !phone) setPhone(prePhone);
+
+    // Backend schema has no "pincode" field; store it in notes so it still reaches admin view.
+    if (prePincode && !notes) {
+      setNotes(`Pincode: ${prePincode}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load brands & problems on mount
   useEffect(() => {
