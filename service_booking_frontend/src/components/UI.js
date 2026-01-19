@@ -50,6 +50,7 @@ export function Button({ variant = 'primary', type = 'button', disabled, onClick
 // PUBLIC_INTERFACE
 export function TextInput({ label, value, onChange, placeholder, type = 'text', error, required }) {
   /** Controlled text input with label + inline error. */
+  const safeOnChange = typeof onChange === 'function' ? onChange : () => {};
   return (
     <label className="field">
       <span className="field__label">
@@ -59,7 +60,7 @@ export function TextInput({ label, value, onChange, placeholder, type = 'text', 
         className={`input ${error ? 'input--error' : ''}`}
         value={value}
         type={type}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => safeOnChange(e.target.value)}
         placeholder={placeholder}
         aria-invalid={Boolean(error)}
       />
@@ -71,13 +72,14 @@ export function TextInput({ label, value, onChange, placeholder, type = 'text', 
 // PUBLIC_INTERFACE
 export function TextArea({ label, value, onChange, placeholder, error }) {
   /** Controlled textarea with label + inline error. */
+  const safeOnChange = typeof onChange === 'function' ? onChange : () => {};
   return (
     <label className="field">
       <span className="field__label">{label}</span>
       <textarea
         className={`textarea ${error ? 'input--error' : ''}`}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => safeOnChange(e.target.value)}
         placeholder={placeholder}
         rows={4}
         aria-invalid={Boolean(error)}
