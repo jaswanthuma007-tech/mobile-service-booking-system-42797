@@ -7,37 +7,57 @@ const HERO_IMAGE =
 
 // PUBLIC_INTERFACE
 export default function Hero() {
-  /** Hero section with headline, value props, and booking form card. */
+  /** Premium hero section: left value props + trust indicators, right glass booking card. */
   return (
     <section className="lp-hero" aria-label="Hero">
       <div className="lp-container lp-hero__inner">
         <div className="lp-hero__left lp-anim lp-anim--up">
-          <div className="lp-hero__badge">
-            <span className="lp-pill lp-pill--accent">Upto 6 months warranty</span>
+          <div className="lp-hero__badge" aria-label="Highlights">
+            <span className="lp-pill lp-pill--accent">Up to 6 months warranty</span>
             <span className="lp-pill lp-pill--muted">Doorstep service</span>
-            <span className="lp-pill lp-pill--muted">Genuine parts</span>
+            <span className="lp-pill lp-pill--muted">Certified technicians</span>
           </div>
 
           <h1 className="lp-h1">
-            Fast, trusted <span className="lp-accent">mobile repairs</span> — at your doorstep.
+            Premium <span className="lp-accent">mobile repairs</span> — fast, safe, and at your doorstep.
           </h1>
-          <p className="lp-hero__sub lp-muted">
-            Book in seconds. Certified technicians, transparent pricing, and a smooth repair experience that feels truly
-            commercial-grade.
+          <p className="lp-hero__sub">
+            A real, production-grade booking experience: transparent pricing, secure booking, and real-time repair status updates.
           </p>
 
-          <div className="lp-hero__points" aria-label="Value propositions">
+          <div className="lp-hero__points" aria-label="Why choose us">
             <div className="lp-point">
               <div className="lp-point__dot" aria-hidden="true" />
               Same-day slots in most areas
             </div>
             <div className="lp-point">
               <div className="lp-point__dot" aria-hidden="true" />
-              Free diagnosis with repair
+              Genuine parts with warranty
             </div>
             <div className="lp-point">
               <div className="lp-point__dot" aria-hidden="true" />
-              Secure online booking
+              Secure, hassle-free booking
+            </div>
+          </div>
+
+          <div className="lp-heroTrust" aria-label="Trust indicators">
+            <div className="lp-heroTrust__item">
+              <span className="lp-heroTrust__icon" aria-hidden="true">
+                ★
+              </span>
+              4.8/5 rating
+            </div>
+            <div className="lp-heroTrust__item">
+              <span className="lp-heroTrust__icon" aria-hidden="true">
+                ✓
+              </span>
+              125k+ customers
+            </div>
+            <div className="lp-heroTrust__item">
+              <span className="lp-heroTrust__icon" aria-hidden="true">
+                🔒
+              </span>
+              Secure booking
             </div>
           </div>
 

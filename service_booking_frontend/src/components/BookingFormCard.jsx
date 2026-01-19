@@ -98,18 +98,20 @@ export default function BookingFormCard() {
   }
 
   return (
-    <div id="book" className="lp-card lp-card--form" aria-label="Booking form">
+    <div id="book" className="lp-card lp-card--form lp-card--glass" aria-label="Booking form">
       <div className="lp-card__head">
-        <div className="lp-card__eyebrow">Instant Booking</div>
-        <h2 className="lp-h3">Book a repair</h2>
-        <p className="lp-muted" style={{ marginTop: 6 }}>
-          Share your details. We’ll confirm availability and guide you through the next steps.
+        <div className="lp-card__eyebrow">Instant booking</div>
+        <h2 className="lp-h3" style={{ marginTop: 10, color: 'rgba(255,255,255,0.95)' }}>
+          Book a repair
+        </h2>
+        <p className="lp-muted" style={{ marginTop: 6, color: 'rgba(255,255,255,0.72)' }}>
+          Enter your details to confirm availability and continue the booking flow.
         </p>
       </div>
 
       <form onSubmit={submit} noValidate>
         <label className="lp-field">
-          <span className="lp-field__label">
+          <span className="lp-field__label" style={{ color: 'rgba(255,255,255,0.85)' }}>
             Name <span className="lp-req">*</span>
           </span>
           <input
@@ -127,7 +129,7 @@ export default function BookingFormCard() {
         </label>
 
         <label className="lp-field">
-          <span className="lp-field__label">
+          <span className="lp-field__label" style={{ color: 'rgba(255,255,255,0.85)' }}>
             Phone Number <span className="lp-req">*</span>
           </span>
           <input
@@ -139,7 +141,6 @@ export default function BookingFormCard() {
               const raw = ev.target.value;
               const digits = raw.replace(/\D/g, '').slice(0, 10);
 
-              // Rebuild string in a simple readable format without being too opinionated.
               // If user is pasting, this ensures we don't exceed 10 digits.
               setPhone(digits);
               setTouched((t) => ({ ...t, phone: true })); // real-time validation feedback
@@ -155,7 +156,7 @@ export default function BookingFormCard() {
         </label>
 
         <label className="lp-field">
-          <span className="lp-field__label">
+          <span className="lp-field__label" style={{ color: 'rgba(255,255,255,0.85)' }}>
             Pincode <span className="lp-req">*</span>
           </span>
           <input
@@ -181,8 +182,8 @@ export default function BookingFormCard() {
             aria-invalid={Boolean(touched.pincode && errors.pincode)}
             aria-describedby="pincode-help"
           />
-          <span id="pincode-help" className="lp-field__hint">
-            We use this to confirm service availability in your area.
+          <span id="pincode-help" className="lp-field__hint" style={{ color: 'rgba(255,255,255,0.70)' }}>
+            We use this to confirm doorstep service availability.
           </span>
           {touched.pincode && errors.pincode ? <span className="lp-field__error">{errors.pincode}</span> : null}
         </label>
@@ -197,15 +198,15 @@ export default function BookingFormCard() {
         </button>
 
         <div className="lp-card__trust" aria-label="Trust note">
-          <div className="lp-miniTrust">
+          <div className="lp-miniTrust" style={{ color: 'rgba(255,255,255,0.72)' }}>
             <span className="lp-miniTrust__dot" aria-hidden="true" />
             Secure booking
           </div>
-          <div className="lp-miniTrust">
+          <div className="lp-miniTrust" style={{ color: 'rgba(255,255,255,0.72)' }}>
             <span className="lp-miniTrust__dot" aria-hidden="true" />
             Transparent pricing
           </div>
-          <div className="lp-miniTrust">
+          <div className="lp-miniTrust" style={{ color: 'rgba(255,255,255,0.72)' }}>
             <span className="lp-miniTrust__dot" aria-hidden="true" />
             Warranty included
           </div>
