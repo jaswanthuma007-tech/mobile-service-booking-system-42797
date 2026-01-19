@@ -31,6 +31,20 @@ async function readErrorMessage(res) {
 }
 
 /**
+ * Best-effort conversion of fetch/network errors into something user-friendly.
+ * @param {any} e
+ * @returns {string}
+ */
+function toNetworkHint(e) {
+  const msg = e?.message ? String(e.message) : '';
+  if (e?.name === 'AbortError') return 'Request was cancelled.';
+  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg) || /Load failed/i.test(msg)) {
+    return `Unable to reach the booking server (${BASE_URL}). Please try again.`;
+  }
+  return msg || 'Request failed.';
+}
+
+/**
  * Perform a JSON request to the backend.
  * @param {string} path
  * @param {{ method?: string, body?: any, query?: Record<string, any>, signal?: AbortSignal }} options
@@ -40,14 +54,21 @@ async function requestJson(path, options = {}) {
   const { method = 'GET', body, query, signal } = options;
 
   const url = `${BASE_URL}${path}${toQueryString(query)}`;
-  const res = await fetch(url, {
-    method,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    signal
-  });
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal
+    });
+  } catch (e) {
+    // Network error / CORS / DNS / offline etc.
+    throw new Error(toNetworkHint(e));
+  }
 
   if (!res.ok) {
     const msg = await readErrorMessage(res);
@@ -62,21 +83,21 @@ async function requestJson(path, options = {}) {
 }
 
 // PUBLIC_INTERFACE
-export async function getBrands() {
+export async function getBrands(options = {}) {
   /** Fetch supported brands. */
-  return requestJson('/api/brands');
+  return requestJson('/api/brands', options);
 }
 
 // PUBLIC_INTERFACE
-export async function getModels(brandId) {
+export async function getModels(brandId, options = {}) {
   /** Fetch models for a given brand id. */
-  return requestJson('/api/models', { query: { brand: brandId } });
+  return requestJson('/api/models', { ...options, query: { ...(options.query || {}), brand: brandId } });
 }
 
 // PUBLIC_INTERFACE
-export async function getProblems() {
+export async function getProblems(options = {}) {
   /** Fetch common repair problems. */
-  return requestJson('/api/problems');
+  return requestJson('/api/problems', options);
 }
 
 // PUBLIC_INTERFACE

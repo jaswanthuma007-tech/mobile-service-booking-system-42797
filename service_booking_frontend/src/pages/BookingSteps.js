@@ -57,9 +57,8 @@ function deriveBrandMark(brandName) {
  */
 function toUserFacingError(e, fallback) {
   const msg = e?.message ? String(e.message) : '';
-  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
-    return 'Unable to reach the booking server. Please check your connection and try again.';
-  }
+  // Abort errors are expected when the user changes selection quickly.
+  if (e?.name === 'AbortError' || /cancelled/i.test(msg)) return '';
   return msg || fallback;
 }
 
@@ -154,8 +153,10 @@ export default function BookingSteps() {
   }, []);
 
   // When brand changes: fetch models; reset dependent selections.
+  // Also: cancel in-flight fetch to prevent stale model lists when user clicks brands quickly.
   useEffect(() => {
-    let cancelled = false;
+    const ac = new AbortController();
+    let done = false;
 
     async function loadModelsForBrand() {
       setModels([]);
@@ -168,26 +169,33 @@ export default function BookingSteps() {
       setError('');
       setLoadingModels(true);
       try {
-        const m = await getModels(Number(selectedBrandId));
-        if (cancelled) return;
+        const m = await getModels(Number(selectedBrandId), { signal: ac.signal });
+        if (done) return;
         setModels(m || []);
+
+        // Auto-advance only after models are loaded, to avoid empty step.
+        // Keep smooth transitions via goToStep scroll animation.
+        goToStep(1);
       } catch (e) {
-        if (cancelled) return;
-        setError(toUserFacingError(e, 'Failed to load models.'));
+        if (done) return;
+        const msg = toUserFacingError(e, 'Failed to load models.');
+        if (msg) setError(msg);
       } finally {
-        if (!cancelled) setLoadingModels(false);
+        if (!done) setLoadingModels(false);
       }
     }
 
     loadModelsForBrand();
     return () => {
-      cancelled = true;
+      done = true;
+      ac.abort();
     };
   }, [selectedBrandId]);
 
   // When model changes: load problems; reset problem selection.
   useEffect(() => {
-    let cancelled = false;
+    const ac = new AbortController();
+    let done = false;
 
     async function loadProblemsForModel() {
       setSelectedProblemId('');
@@ -198,27 +206,28 @@ export default function BookingSteps() {
       setError('');
       setLoadingProblemsState(true);
       try {
-        const p = await getProblems();
-        if (cancelled) return;
+        const p = await getProblems({ signal: ac.signal });
+        if (done) return;
         setProblems(p || []);
       } catch (e) {
-        if (cancelled) return;
-        setError(toUserFacingError(e, 'Failed to load problems.'));
+        if (done) return;
+        const msg = toUserFacingError(e, 'Failed to load problems.');
+        if (msg) setError(msg);
       } finally {
-        if (!cancelled) setLoadingProblemsState(false);
+        if (!done) setLoadingProblemsState(false);
       }
     }
 
     loadProblemsForModel();
     return () => {
-      cancelled = true;
+      done = true;
+      ac.abort();
     };
   }, [selectedModelId]);
 
   function handleSelectBrand(id) {
     setSelectedBrandId(String(id));
-    // Auto-advance to model step (models fetch will run in the background via effect)
-    goToStep(1);
+    // Auto-advance is handled after models load (effect), to keep the step from showing empty state.
   }
 
   function handleSelectModel(id) {
