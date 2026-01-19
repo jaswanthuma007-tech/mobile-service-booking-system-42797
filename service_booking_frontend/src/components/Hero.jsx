@@ -6,6 +6,8 @@ import iphone15Png from '../assets/hero/iphone-15.png';
 import galaxyS24UltraPng from '../assets/hero/galaxy-s24-ultra.png';
 import pixel6ProPng from '../assets/hero/pixel-6-pro.png';
 
+import { preloadImages, resolveDeviceImageUrl } from '../api/deviceImages';
+
 const SLIDE_INTERVAL_MS = 4500;
 
 // PUBLIC_INTERFACE
@@ -14,18 +16,39 @@ export default function Hero() {
 
   const slides = useMemo(
     () => [
-      { key: 'iphone-15', alt: 'Apple iPhone mockup', src: iphone15Png },
-      { key: 'galaxy-s24-ultra', alt: 'Samsung Galaxy mockup', src: galaxyS24UltraPng },
-      { key: 'pixel-6-pro', alt: 'Google Pixel mockup', src: pixel6ProPng },
+      {
+        key: 'apple',
+        alt: 'Apple iPhone device',
+        fallbackSrc: iphone15Png,
+      },
+      {
+        key: 'samsung',
+        alt: 'Samsung Galaxy device',
+        fallbackSrc: galaxyS24UltraPng,
+      },
+      {
+        key: 'google',
+        alt: 'Google Pixel device',
+        fallbackSrc: pixel6ProPng,
+      },
     ],
     []
   );
 
-  // Use a deterministic local fallback (first slide) to avoid blank states.
-  const fallbackSrc = slides[0]?.src;
+  // Deterministic local fallback to avoid blank states if anything goes wrong.
+  const globalFallbackSrc = slides[0]?.fallbackSrc;
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [resolvedUrls, setResolvedUrls] = useState(() => {
+    // Initialize with local fallbacks so the UI is instantly ready.
+    const map = {};
+    slides.forEach((s) => {
+      map[s.key] = s.fallbackSrc;
+    });
+    return map;
+  });
+
   const intervalRef = useRef(null);
 
   const goTo = (index) => {
@@ -51,33 +74,62 @@ export default function Hero() {
   }, [isPaused, slides.length]);
 
   useEffect(() => {
-    // Preload all slide images once to ensure smooth transitions and avoid flashes/blank states.
-    slides.forEach((slide) => {
-      const img = new Image();
-      img.src = slide.src;
-    });
+    // Preload local fallbacks once (always safe).
+    preloadImages(slides.map((s) => s.fallbackSrc));
   }, [slides]);
 
   useEffect(() => {
-    // Also preload neighbor slides around the active index (helps when assets are large).
+    // Resolve remote images with caching (localStorage) + fallbacks.
+    let cancelled = false;
+
+    async function run() {
+      const entries = await Promise.all(
+        slides.map(async (s) => {
+          const url = await resolveDeviceImageUrl({
+            brandKey: s.key,
+            fallbackSrc: s.fallbackSrc,
+          });
+          return [s.key, url];
+        })
+      );
+
+      if (cancelled) return;
+
+      const nextMap = {};
+      entries.forEach(([k, v]) => {
+        nextMap[k] = v;
+      });
+      setResolvedUrls(nextMap);
+
+      // Best-effort preload resolved URLs too for smooth transitions.
+      preloadImages(entries.map(([, v]) => v));
+    }
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [slides]);
+
+  useEffect(() => {
+    // Preload neighbor slides around the active index (helps when assets are large).
     const next = slides[(activeIndex + 1) % slides.length];
     const prev = slides[(activeIndex - 1 + slides.length) % slides.length];
 
-    [next, prev].forEach((slide) => {
-      if (!slide) return;
-      const img = new Image();
-      img.src = slide.src;
-    });
-  }, [activeIndex, slides]);
+    preloadImages([resolvedUrls?.[next?.key], resolvedUrls?.[prev?.key]].filter(Boolean));
+  }, [activeIndex, slides, resolvedUrls]);
 
   const activeSlide = slides[activeIndex];
+  const activeSrc = resolvedUrls?.[activeSlide.key] || activeSlide.fallbackSrc;
 
   const handleImgError = (event) => {
-    // Robust fallback: if an image fails for any reason, swap to a known-good local asset.
-    // Also prevents infinite error loops by only setting when different.
+    // Robust fallback: if a remote image fails for any reason, swap to a known-good local asset.
+    // Prevent infinite loops by only setting when different.
     const img = event.currentTarget;
-    if (fallbackSrc && img.src !== fallbackSrc) {
-      img.src = fallbackSrc;
+
+    const localFallback = activeSlide?.fallbackSrc || globalFallbackSrc;
+    if (localFallback && img.src !== localFallback) {
+      img.src = localFallback;
     }
   };
 
@@ -134,7 +186,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Right: Image slider + booking card (booking card stays present) */}
+        {/* Right: Image slider + booking card */}
         <div className="lp-hero__rightRail lp-anim lp-anim--up lp-anim--delay">
           <div
             className="lp-heroImageSlider"
@@ -150,7 +202,7 @@ export default function Hero() {
               <img
                 key={activeSlide.key}
                 className="lp-heroImageSlider__img"
-                src={activeSlide.src}
+                src={activeSrc}
                 alt={activeSlide.alt}
                 onError={handleImgError}
                 loading="eager"
