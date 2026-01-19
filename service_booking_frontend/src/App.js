@@ -4,6 +4,7 @@ import './App.css';
 
 import LandingPage from './pages/LandingPage';
 import BookingFlow from './pages/BookingFlow';
+import BookingSteps from './pages/BookingSteps';
 import BookingConfirmation from './pages/BookingConfirmation';
 import AdminDashboard from './pages/AdminDashboard';
 import TrackStatus from './pages/TrackStatus';
@@ -19,6 +20,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
 
+        <Route path="/booking/steps" element={<BookingSteps />} />
         <Route path="/booking" element={<BookingFlow />} />
         <Route path="/booking/confirmation" element={<BookingConfirmation />} />
 

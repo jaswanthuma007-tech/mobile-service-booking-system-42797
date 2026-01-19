@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_BASE || 'http://localhost:3001';
 
 /**
  * Convert an object to a querystring (skips null/undefined/empty-string).
@@ -77,6 +77,12 @@ export async function getModels(brandId) {
 export async function getProblems() {
   /** Fetch common repair problems. */
   return requestJson('/api/problems');
+}
+
+// PUBLIC_INTERFACE
+export async function getServices() {
+  /** Fetch available repair services (alias of problems endpoint). */
+  return getProblems();
 }
 
 // PUBLIC_INTERFACE

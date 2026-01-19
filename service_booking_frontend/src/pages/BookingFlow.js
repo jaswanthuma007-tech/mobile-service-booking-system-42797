@@ -54,15 +54,27 @@ export default function BookingFlow() {
 
   const [error, setError] = useState('');
 
-  // Apply prefills from landing page (query params: name, phone, pincode)
+  // Apply prefills from landing/selection flow query params.
+  // Supported params:
+  // - name, phone, pincode (from landing page)
+  // - brandId, modelId, problemId (from the 3-step selector /booking/steps)
   useEffect(() => {
     const qs = new URLSearchParams(location.search || '');
     const preName = qs.get('name') || '';
     const prePhone = qs.get('phone') || '';
     const prePincode = qs.get('pincode') || '';
 
+    const preBrandId = qs.get('brandId') || '';
+    const preModelId = qs.get('modelId') || '';
+    const preProblemId = qs.get('problemId') || '';
+
     if (preName && !customerName) setCustomerName(preName);
     if (prePhone && !phone) setPhone(prePhone);
+
+    // Prefill device selections if not already chosen.
+    if (preBrandId && !brandId) setBrandId(String(preBrandId));
+    if (preModelId && !modelId) setModelId(String(preModelId));
+    if (preProblemId && !problemId) setProblemId(String(preProblemId));
 
     // Backend schema has no "pincode" field; store it in notes so it still reaches admin view.
     if (prePincode && !notes) {
@@ -133,8 +145,9 @@ export default function BookingFlow() {
 
   // Reset dependent selections when appropriate
   useEffect(() => {
-    // Changing brand invalidates selected model
-    setModelId('');
+    // Changing brand invalidates selected model, but avoid wiping an initial prefill race.
+    // If a model is already set and the brand changes, reset it; otherwise keep as-is.
+    setModelId((prev) => (prev ? '' : prev));
   }, [brandId]);
 
   const brandOptions = useMemo(
