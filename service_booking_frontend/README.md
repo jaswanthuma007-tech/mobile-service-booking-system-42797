@@ -51,9 +51,17 @@ different from `localhost`, which can cause CRA to show **"Invalid Host header"*
 
 This repo includes a development-only file `.env.development.local` that:
 - binds the dev server to `0.0.0.0`, and
-- disables CRA's host checking in development.
+- disables CRA's host checking in development (`DANGEROUSLY_DISABLE_HOST_CHECK=true`).
 
 This does **not** affect production builds (`npm run build`).
+
+### Confirming the `/api` proxy still works
+
+We intentionally do **not** override `REACT_APP_API_BASE_URL` in `.env.development.local`.
+In development, API calls should remain **relative** (e.g. `/api/brands`) so CRA can proxy them
+(using `package.json -> proxy: http://localhost:5000`).
+
+If you set `REACT_APP_API_BASE_URL` to an absolute URL, CRA proxying will be bypassed.
 
 ## Routes
 
