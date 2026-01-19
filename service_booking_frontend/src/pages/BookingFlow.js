@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, Alert, Button, Card, Select, Stepper, TextArea, TextInput } from '../components/UI';
-import { createBooking, getBrands, getModels, getProblems } from '../api/client';
+import { createBooking, getApiStatus, getBrands, getModels, getProblems } from '../api/client';
 
 const steps = ['Personal', 'Brand', 'Model', 'Problem', 'Review'];
 
@@ -26,8 +26,12 @@ function formatDateTime(s) {
 function toUserFacingError(e, fallback) {
   // Provide a clearer message for common fetch/network failures.
   const msg = e?.message ? String(e.message) : '';
-  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
-    return 'Unable to reach the booking server. Please check your connection and try again.';
+  if (e?.name === 'AbortError') return '';
+  if (e?.type === 'timeout' || /timed out/i.test(msg)) {
+    return 'The server is taking too long to respond. Please try again.';
+  }
+  if (e?.type === 'network' || /Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
+    return 'We couldn’t reach the booking server. Please check your connection and try again.';
   }
   return msg || fallback;
 }
@@ -63,6 +67,7 @@ export default function BookingFlow() {
 
   // Keep error visible but avoid using it as a generic/loading signal.
   const [error, setError] = useState('');
+  const [apiInfo, setApiInfo] = useState(() => getApiStatus());
 
   // Track whether brand was changed by the user (vs prefills) to avoid wiping prefills.
   const lastBrandIdRef = useRef('');
@@ -116,6 +121,7 @@ export default function BookingFlow() {
         if (!cancelled) {
           setLoadingBrands(false);
           setLoadingProblems(false);
+          window.setTimeout(() => setApiInfo(getApiStatus()), 0);
         }
       }
     }
@@ -155,7 +161,10 @@ export default function BookingFlow() {
         if (cancelled) return;
         setError(toUserFacingError(e, 'Failed to load models.'));
       } finally {
-        if (!cancelled) setLoadingModels(false);
+        if (!cancelled) {
+          setLoadingModels(false);
+          window.setTimeout(() => setApiInfo(getApiStatus()), 0);
+        }
       }
     }
 
@@ -303,6 +312,7 @@ export default function BookingFlow() {
       setError(toUserFacingError(e, 'Booking submission failed.'));
     } finally {
       setSubmitLoading(false);
+      window.setTimeout(() => setApiInfo(getApiStatus()), 0);
     }
   }
 
@@ -322,10 +332,23 @@ export default function BookingFlow() {
 
         <Stepper steps={steps} currentIndex={step} />
 
+        {apiInfo?.mockModeEnabled ? (
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="success" title="Using demo data">
+              The booking server is unavailable right now, so we’re showing demo options. Submitting may not create a real booking.
+            </Alert>
+          </div>
+        ) : null}
+
         {error ? (
           <div style={{ marginBottom: 12 }}>
-            <Alert variant="error" title="Something went wrong">
-              {error}
+            <Alert variant="error" title="Can’t complete request">
+              <div style={{ lineHeight: 1.6 }}>
+                <div>{error}</div>
+                <div style={{ marginTop: 6, color: 'rgba(17, 24, 39, 0.72)' }}>
+                  Tip: you can click Back and retry, or refresh the page.
+                </div>
+              </div>
             </Alert>
           </div>
         ) : null}

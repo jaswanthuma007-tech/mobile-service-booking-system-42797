@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell, Alert, Button, Card } from '../components/UI';
 import './bookingSteps.css';
-import { getBrands, getModels, getProblems } from '../api/client';
+import { getApiStatus, getBrands, getModels, getProblems } from '../api/client';
 
 const STEPS = [
   { key: 'brand', label: 'Select Brand' },
@@ -83,6 +83,7 @@ export default function BookingSteps() {
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingProblems, setLoadingProblemsState] = useState(false);
   const [error, setError] = useState('');
+  const [apiInfo, setApiInfo] = useState(() => getApiStatus());
 
   const brandRef = useRef(null);
   const modelRef = useRef(null);
@@ -129,6 +130,56 @@ export default function BookingSteps() {
     window.requestAnimationFrame(() => scrollToStep(bounded));
   }
 
+  function refreshApiInfoSoon() {
+    // Pull latest state after a request (auto mock fallback can flip after failures).
+    window.setTimeout(() => setApiInfo(getApiStatus()), 0);
+  }
+
+  async function retryCurrentStep() {
+    setError('');
+    if (stepIndex === 0) {
+      // Trigger brand reload by re-running the same logic inline
+      setLoadingBrands(true);
+      try {
+        const b = await getBrands();
+        setBrands(b || []);
+      } catch (e) {
+        setError(toUserFacingError(e, 'We couldn’t load brands. Please try again.'));
+      } finally {
+        setLoadingBrands(false);
+        refreshApiInfoSoon();
+      }
+      return;
+    }
+
+    if (stepIndex === 1 && selectedBrandId) {
+      setLoadingModels(true);
+      try {
+        const m = await getModels(Number(selectedBrandId));
+        setModels(m || []);
+      } catch (e) {
+        setError(toUserFacingError(e, 'We couldn’t load models. Please try again.'));
+      } finally {
+        setLoadingModels(false);
+        refreshApiInfoSoon();
+      }
+      return;
+    }
+
+    if (stepIndex === 2 && selectedModelId) {
+      setLoadingProblemsState(true);
+      try {
+        const p = await getProblems();
+        setProblems(p || []);
+      } catch (e) {
+        setError(toUserFacingError(e, 'We couldn’t load problems. Please try again.'));
+      } finally {
+        setLoadingProblemsState(false);
+        refreshApiInfoSoon();
+      }
+    }
+  }
+
   // Initial load: brands
   useEffect(() => {
     let cancelled = false;
@@ -141,15 +192,17 @@ export default function BookingSteps() {
         setBrands(b || []);
       } catch (e) {
         if (cancelled) return;
-        setError(toUserFacingError(e, 'Failed to load brands.'));
+        setError(toUserFacingError(e, 'We couldn’t load brands. Please try again.'));
       } finally {
         if (!cancelled) setLoadingBrands(false);
+        refreshApiInfoSoon();
       }
     }
     loadBrands();
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When brand changes: fetch models; reset dependent selections.
@@ -182,6 +235,7 @@ export default function BookingSteps() {
         if (msg) setError(msg);
       } finally {
         if (!done) setLoadingModels(false);
+        refreshApiInfoSoon();
       }
     }
 
@@ -215,6 +269,7 @@ export default function BookingSteps() {
         if (msg) setError(msg);
       } finally {
         if (!done) setLoadingProblemsState(false);
+        refreshApiInfoSoon();
       }
     }
 
@@ -284,10 +339,23 @@ export default function BookingSteps() {
           })}
         </div>
 
+        {apiInfo?.mockModeEnabled ? (
+          <div style={{ marginBottom: 12 }}>
+            <Alert variant="success" title="Using demo data">
+              The booking server is unavailable right now, so we’re showing demo options. You can still explore the flow.
+            </Alert>
+          </div>
+        ) : null}
+
         {error ? (
           <div style={{ marginBottom: 12 }}>
-            <Alert variant="error" title="Something went wrong">
-              {error}
+            <Alert variant="error" title="Can’t load data">
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ flex: 1 }}>{error}</div>
+                <Button variant="primary" onClick={retryCurrentStep}>
+                  Retry
+                </Button>
+              </div>
             </Alert>
           </div>
         ) : null}
