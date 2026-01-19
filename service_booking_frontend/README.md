@@ -44,6 +44,17 @@ npm start
 
 Open: http://localhost:3000
 
+## Preview / "Invalid Host header" fix (development)
+
+When running in a workspace preview environment, the dev server may be accessed via a hostname
+different from `localhost`, which can cause CRA to show **"Invalid Host header"**.
+
+This repo includes a development-only file `.env.development.local` that:
+- binds the dev server to `0.0.0.0`, and
+- disables CRA's host checking in development.
+
+This does **not** affect production builds (`npm run build`).
+
 ## Routes
 
 - `/` – Home (links to booking + admin)
