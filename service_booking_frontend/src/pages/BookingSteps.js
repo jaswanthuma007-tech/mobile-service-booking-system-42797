@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell, Alert, Button, Card } from '../components/UI';
 import './bookingSteps.css';
-import { getBrands, getModels, getServices } from '../api/client';
+import { getBrands, getModels, getProblems } from '../api/client';
 
 const STEPS = [
   { key: 'brand', label: 'Select Brand' },
   { key: 'model', label: 'Select Model' },
-  { key: 'service', label: 'Select Service' }
+  { key: 'problem', label: 'Select Problem' }
 ];
 
 /**
@@ -34,20 +34,20 @@ export default function BookingSteps() {
 
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
-  const [services, setServices] = useState([]);
+  const [problems, setProblems] = useState([]);
 
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [selectedModelId, setSelectedModelId] = useState('');
-  const [selectedServiceId, setSelectedServiceId] = useState('');
+  const [selectedProblemId, setSelectedProblemId] = useState('');
 
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [loadingServices, setLoadingServicesState] = useState(false);
+  const [loadingProblems, setLoadingProblemsState] = useState(false);
   const [error, setError] = useState('');
 
   const brandRef = useRef(null);
   const modelRef = useRef(null);
-  const serviceRef = useRef(null);
+  const problemRef = useRef(null);
 
   const selectedBrand = useMemo(
     () => brands.find((b) => String(b.id) === String(selectedBrandId)),
@@ -57,20 +57,20 @@ export default function BookingSteps() {
     () => models.find((m) => String(m.id) === String(selectedModelId)),
     [models, selectedModelId]
   );
-  const selectedService = useMemo(
-    () => services.find((s) => String(s.id) === String(selectedServiceId)),
-    [services, selectedServiceId]
+  const selectedProblem = useMemo(
+    () => problems.find((p) => String(p.id) === String(selectedProblemId)),
+    [problems, selectedProblemId]
   );
 
   const canGoNext = useMemo(() => {
     if (stepIndex === 0) return Boolean(selectedBrandId);
     if (stepIndex === 1) return Boolean(selectedModelId);
-    if (stepIndex === 2) return Boolean(selectedServiceId);
+    if (stepIndex === 2) return Boolean(selectedProblemId);
     return false;
-  }, [stepIndex, selectedBrandId, selectedModelId, selectedServiceId]);
+  }, [stepIndex, selectedBrandId, selectedModelId, selectedProblemId]);
 
   function scrollToStep(idx) {
-    const el = idx === 0 ? brandRef.current : idx === 1 ? modelRef.current : serviceRef.current;
+    const el = idx === 0 ? brandRef.current : idx === 1 ? modelRef.current : problemRef.current;
     if (!el) return;
 
     // Smooth scroll + "slide" animation via CSS classes on the step panels.
@@ -114,8 +114,8 @@ export default function BookingSteps() {
     async function loadModelsForBrand() {
       setModels([]);
       setSelectedModelId('');
-      setSelectedServiceId('');
-      setServices([]);
+      setSelectedProblemId('');
+      setProblems([]);
 
       if (!selectedBrandId) return;
 
@@ -139,32 +139,31 @@ export default function BookingSteps() {
     };
   }, [selectedBrandId]);
 
-  // When model changes: load services; reset service selection.
+  // When model changes: load problems; reset problem selection.
   useEffect(() => {
     let cancelled = false;
 
-    async function loadServicesForModel() {
-      setSelectedServiceId('');
-      setServices([]);
+    async function loadProblemsForModel() {
+      setSelectedProblemId('');
+      setProblems([]);
 
       if (!selectedModelId) return;
 
       setError('');
-      setLoadingServicesState(true);
+      setLoadingProblemsState(true);
       try {
-        // Backend exposes a generic list; frontend can filter/label later if needed.
-        const s = await getServices();
+        const p = await getProblems();
         if (cancelled) return;
-        setServices(s || []);
+        setProblems(p || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e?.message || 'Failed to load services.');
+        setError(e?.message || 'Failed to load problems.');
       } finally {
-        if (!cancelled) setLoadingServicesState(false);
+        if (!cancelled) setLoadingProblemsState(false);
       }
     }
 
-    loadServicesForModel();
+    loadProblemsForModel();
     return () => {
       cancelled = true;
     };
@@ -182,17 +181,16 @@ export default function BookingSteps() {
     goToStep(2);
   }
 
-  function handleSelectService(id) {
-    setSelectedServiceId(String(id));
+  function handleSelectProblem(id) {
+    setSelectedProblemId(String(id));
   }
 
   function handleConfirm() {
-    // Route into existing customer details flow (BookingFlow) and prefill via query params.
-    // BookingFlow currently understands name/phone/pincode; we extend it to accept brandId/modelId/problemId.
+    // Route into booking flow and prefill via query params.
     const qs = buildQuery({
       brandId: selectedBrandId,
       modelId: selectedModelId,
-      problemId: selectedServiceId
+      problemId: selectedProblemId
     });
 
     navigate(`/booking${qs}`);
@@ -322,12 +320,12 @@ export default function BookingSteps() {
           </section>
 
           <section
-            ref={serviceRef}
+            ref={problemRef}
             className={`bf3-panel ${stepIndex === 2 ? 'is-active' : ''}`}
-            aria-label="Select service"
+            aria-label="Select problem"
           >
             <div className="bf3-panel__head">
-              <h3 style={{ margin: 0 }}>3) Select Service</h3>
+              <h3 style={{ margin: 0 }}>3) Select Problem</h3>
               <p style={{ margin: '6px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>
                 {selectedModel ? (
                   <>
@@ -341,25 +339,25 @@ export default function BookingSteps() {
 
             <div className="bf3-grid" role="list">
               {!selectedModelId ? (
-                <div className="bf3-empty">Pick a model to see services.</div>
-              ) : loadingServices ? (
-                <div className="bf3-empty">Loading services…</div>
-              ) : (services || []).length === 0 ? (
-                <div className="bf3-empty">No services available.</div>
+                <div className="bf3-empty">Pick a model to see problems.</div>
+              ) : loadingProblems ? (
+                <div className="bf3-empty">Loading problems…</div>
+              ) : (problems || []).length === 0 ? (
+                <div className="bf3-empty">No problems available.</div>
               ) : (
-                (services || []).map((s) => {
-                  const active = String(s.id) === String(selectedServiceId);
+                (problems || []).map((p) => {
+                  const active = String(p.id) === String(selectedProblemId);
                   return (
                     <button
-                      key={s.id}
+                      key={p.id}
                       type="button"
                       className={`bf3-choice ${active ? 'is-selected' : ''}`}
-                      onClick={() => handleSelectService(s.id)}
+                      onClick={() => handleSelectProblem(p.id)}
                       role="listitem"
                       aria-pressed={active}
-                      disabled={!selectedModelId || loadingServices}
+                      disabled={!selectedModelId || loadingProblems}
                     >
-                      <span className="bf3-choice__title">{s.name}</span>
+                      <span className="bf3-choice__title">{p.name}</span>
                       <span className="bf3-choice__meta">{active ? 'Selected' : 'Select'}</span>
                     </button>
                   );
@@ -376,11 +374,11 @@ export default function BookingSteps() {
                   <strong>Model:</strong> {selectedModel?.name || '—'}
                 </div>
                 <div>
-                  <strong>Service:</strong> {selectedService?.name || '—'}
+                  <strong>Problem:</strong> {selectedProblem?.name || '—'}
                 </div>
               </div>
 
-              <Button variant="primary" onClick={handleConfirm} disabled={!selectedServiceId}>
+              <Button variant="primary" onClick={handleConfirm} disabled={!selectedProblemId}>
                 Confirm Booking
               </Button>
             </div>

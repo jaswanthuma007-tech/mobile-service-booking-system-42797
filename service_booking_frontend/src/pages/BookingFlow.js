@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppShell, Alert, Button, Card, Select, Stepper, TextArea, TextInput } from '../components/UI';
 import { createBooking, getBrands, getModels, getProblems } from '../api/client';
@@ -21,6 +21,15 @@ function formatDateTime(s) {
   } catch {
     return s;
   }
+}
+
+function toUserFacingError(e, fallback) {
+  // Provide a clearer message for common fetch/network failures.
+  const msg = e?.message ? String(e.message) : '';
+  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
+    return 'Unable to reach the booking server. Please check your connection and try again.';
+  }
+  return msg || fallback;
 }
 
 // PUBLIC_INTERFACE
@@ -52,7 +61,11 @@ export default function BookingFlow() {
 
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  // Keep error visible but avoid using it as a generic/loading signal.
   const [error, setError] = useState('');
+
+  // Track whether brand was changed by the user (vs prefills) to avoid wiping prefills.
+  const lastBrandIdRef = useRef('');
 
   // Apply prefills from landing/selection flow query params.
   // Supported params:
@@ -94,11 +107,11 @@ export default function BookingFlow() {
       try {
         const [b, p] = await Promise.all([getBrands(), getProblems()]);
         if (cancelled) return;
-        setBrands(b);
-        setProblems(p);
+        setBrands(b || []);
+        setProblems(p || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e.message || 'Failed to load booking options.');
+        setError(toUserFacingError(e, 'Failed to load booking options.'));
       } finally {
         if (!cancelled) {
           setLoadingBrands(false);
@@ -113,25 +126,34 @@ export default function BookingFlow() {
     };
   }, []);
 
-  // Load models whenever brand changes
+  // When brand changes: load models; reset model selection ONLY if the brand changed (not initial mount).
   useEffect(() => {
     let cancelled = false;
 
     async function loadModels() {
+      // Brand cleared: wipe dependent values.
       if (!brandId) {
+        lastBrandIdRef.current = '';
         setModels([]);
         setModelId('');
         return;
       }
+
+      // If the brand has actually changed, reset model selection so user cannot keep an invalid model.
+      if (lastBrandIdRef.current && String(lastBrandIdRef.current) !== String(brandId)) {
+        setModelId('');
+      }
+      lastBrandIdRef.current = String(brandId);
+
       setError('');
       setLoadingModels(true);
       try {
         const m = await getModels(Number(brandId));
         if (cancelled) return;
-        setModels(m);
+        setModels(m || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e.message || 'Failed to load models.');
+        setError(toUserFacingError(e, 'Failed to load models.'));
       } finally {
         if (!cancelled) setLoadingModels(false);
       }
@@ -143,12 +165,13 @@ export default function BookingFlow() {
     };
   }, [brandId]);
 
-  // Reset dependent selections when appropriate
+  // If model was selected and it doesn't belong to currently loaded models, clear it.
   useEffect(() => {
-    // Changing brand invalidates selected model, but avoid wiping an initial prefill race.
-    // If a model is already set and the brand changes, reset it; otherwise keep as-is.
-    setModelId((prev) => (prev ? '' : prev));
-  }, [brandId]);
+    if (!modelId) return;
+    if ((models || []).some((m) => String(m.id) === String(modelId))) return;
+    setModelId('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [models]);
 
   const brandOptions = useMemo(
     () => brands.map((b) => ({ value: b.id, label: b.name })),
@@ -205,6 +228,29 @@ export default function BookingFlow() {
     return true;
   }
 
+  // Auto-advance on selections (per instruction).
+  useEffect(() => {
+    if (step === 1 && brandId) {
+      // Advance immediately; models will load while on next step (with loading state).
+      setStep(2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId]);
+
+  useEffect(() => {
+    if (step === 2 && modelId) {
+      setStep(3);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelId]);
+
+  useEffect(() => {
+    if (step === 3 && problemId) {
+      setStep(4);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [problemId]);
+
   async function handleSubmit() {
     setError('');
 
@@ -254,7 +300,7 @@ export default function BookingFlow() {
         }
       });
     } catch (e) {
-      setError(e.message || 'Booking submission failed.');
+      setError(toUserFacingError(e, 'Booking submission failed.'));
     } finally {
       setSubmitLoading(false);
     }
@@ -333,7 +379,7 @@ export default function BookingFlow() {
               error={validation.brandId}
             />
             <p style={{ margin: 0, color: 'rgba(17, 24, 39, 0.62)' }}>
-              {loadingBrands ? 'Fetching brands from server…' : 'Tip: selecting a brand will filter the model list.'}
+              {loadingBrands ? 'Fetching brands from server…' : 'Selecting a brand will take you to the next step.'}
             </p>
           </div>
         ) : null}
@@ -355,6 +401,9 @@ export default function BookingFlow() {
               disabled={!brandId || loadingModels}
               error={validation.modelId}
             />
+            {loadingModels ? (
+              <p style={{ margin: '8px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>Fetching models from server…</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -369,6 +418,9 @@ export default function BookingFlow() {
               disabled={loadingProblems}
               error={validation.problemId}
             />
+            {loadingProblems ? (
+              <p style={{ margin: '8px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>Fetching problems from server…</p>
+            ) : null}
           </div>
         ) : null}
 
