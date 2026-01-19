@@ -136,12 +136,24 @@
   padding: 10px 12px;
   font-size: 14px;
   outline: none;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: border-color 120ms ease, box-shadow 120ms ease, transform 180ms ease;
   background: rgba(255,255,255,0.92);
+}
+
+/* Smooth focus transitions for booking form controls */
+.lp-focusMotion:focus{
+  transform: translateY(-1px);
 }
 .lp-input:focus{
   border-color: rgba(37,99,235,0.55);
   box-shadow: 0 0 0 4px rgba(37,99,235,0.14);
+}
+.lp-btn.lp-focusMotion:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(245,158,11,0.22);
+}
+@media (prefers-reduced-motion: reduce){
+  .lp-focusMotion:focus{ transform: none; }
 }
 .lp-input--error{
   border-color: rgba(239,68,68,0.55);

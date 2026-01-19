@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './landing.css';
 
@@ -6,14 +6,19 @@ function isValidName(name) {
   return String(name || '').trim().length > 0;
 }
 
-function isValidPhone(phone) {
-  const s = String(phone || '').trim();
-  return /^\+?\d{10,15}$/.test(s.replace(/\s+/g, ''));
+/**
+ * Strict UX validation: exactly 10 digits.
+ * (We still allow users to type spaces/dashes; we validate against digits only.)
+ */
+function isValidPhone10(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return /^\d{10}$/.test(digits);
 }
 
-function isValidPincode(pin) {
-  const s = String(pin || '').trim();
-  return /^\d{5,6}$/.test(s);
+/** Strict UX validation: exactly 6 digits. */
+function isValidPincode6(pin) {
+  const digits = String(pin || '').replace(/\D/g, '');
+  return /^\d{6}$/.test(digits);
 }
 
 // PUBLIC_INTERFACE
@@ -21,35 +26,75 @@ export default function BookingFormCard() {
   /** Booking card on hero section; validates inputs and routes to /booking with prefills. */
   const navigate = useNavigate();
 
+  const nameRef = useRef(null);
+  const phoneRef = useRef(null);
+  const pinRef = useRef(null);
+  const bookBtnRef = useRef(null);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [pincode, setPincode] = useState('');
   const [touched, setTouched] = useState({ name: false, phone: false, pincode: false });
 
+  // Auto-focus first field when mounted (and when card is navigated to via anchor).
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      nameRef.current?.focus?.();
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, []);
+
   const errors = useMemo(() => {
     const e = {};
     if (!isValidName(name)) e.name = 'Name is required.';
+
     if (!phone.trim()) e.phone = 'Phone number is required.';
-    else if (!isValidPhone(phone)) e.phone = 'Enter 10–15 digits (optionally starts with +).';
+    else if (!isValidPhone10(phone)) e.phone = 'Phone must be exactly 10 digits.';
+
     if (!pincode.trim()) e.pincode = 'Pincode is required.';
-    else if (!isValidPincode(pincode)) e.pincode = 'Pincode must be 5 or 6 digits.';
+    else if (!isValidPincode6(pincode)) e.pincode = 'Pincode must be exactly 6 digits.';
+
     return e;
   }, [name, phone, pincode]);
 
   const canSubmit = useMemo(() => Object.keys(errors).length === 0, [errors]);
+
+  // Once pincode becomes valid, smoothly move focus to the Book Now button.
+  useEffect(() => {
+    if (!isValidPincode6(pincode)) return;
+
+    const t = window.setTimeout(() => {
+      bookBtnRef.current?.focus?.();
+    }, 160); // small delay to allow the last keystroke repaint + transition
+    return () => window.clearTimeout(t);
+  }, [pincode]);
 
   function submit(e) {
     e.preventDefault();
     setTouched({ name: true, phone: true, pincode: true });
     if (!canSubmit) return;
 
+    // For downstream flow, pass digits-only phone/pincode for consistency.
     const qs = new URLSearchParams({
       name: name.trim(),
-      phone: phone.trim(),
-      pincode: pincode.trim()
+      phone: String(phone).replace(/\D/g, ''),
+      pincode: String(pincode).replace(/\D/g, '')
     }).toString();
 
     navigate(`/booking?${qs}`);
+  }
+
+  function focusWithMotion(el) {
+    if (!el?.focus) return;
+    // Use rAF to make focus transitions feel smoother on some browsers.
+    window.requestAnimationFrame(() => el.focus());
+  }
+
+  function handleEnterToAdvance(e, nextEl, markTouchedKey) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (markTouchedKey) setTouched((t) => ({ ...t, [markTouchedKey]: true }));
+    focusWithMotion(nextEl);
   }
 
   return (
@@ -68,10 +113,12 @@ export default function BookingFormCard() {
             Name <span className="lp-req">*</span>
           </span>
           <input
-            className={`lp-input ${touched.name && errors.name ? 'lp-input--error' : ''}`}
+            ref={nameRef}
+            className={`lp-input lp-focusMotion ${touched.name && errors.name ? 'lp-input--error' : ''}`}
             value={name}
             onChange={(ev) => setName(ev.target.value)}
             onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+            onKeyDown={(e) => handleEnterToAdvance(e, phoneRef.current, 'name')}
             placeholder="e.g., Alex Johnson"
             autoComplete="name"
             aria-invalid={Boolean(touched.name && errors.name)}
@@ -84,11 +131,22 @@ export default function BookingFormCard() {
             Phone Number <span className="lp-req">*</span>
           </span>
           <input
-            className={`lp-input ${touched.phone && errors.phone ? 'lp-input--error' : ''}`}
+            ref={phoneRef}
+            className={`lp-input lp-focusMotion ${touched.phone && errors.phone ? 'lp-input--error' : ''}`}
             value={phone}
-            onChange={(ev) => setPhone(ev.target.value)}
+            onChange={(ev) => {
+              // Keep as typed (allow spaces/dashes), but cap digits to 10 for better UX.
+              const raw = ev.target.value;
+              const digits = raw.replace(/\D/g, '').slice(0, 10);
+
+              // Rebuild string in a simple readable format without being too opinionated.
+              // If user is pasting, this ensures we don't exceed 10 digits.
+              setPhone(digits);
+              setTouched((t) => ({ ...t, phone: true })); // real-time validation feedback
+            }}
             onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
-            placeholder="e.g., +1 5551234567"
+            onKeyDown={(e) => handleEnterToAdvance(e, pinRef.current, 'phone')}
+            placeholder="e.g., 9876543210"
             autoComplete="tel"
             inputMode="tel"
             aria-invalid={Boolean(touched.phone && errors.phone)}
@@ -101,10 +159,23 @@ export default function BookingFormCard() {
             Pincode <span className="lp-req">*</span>
           </span>
           <input
-            className={`lp-input ${touched.pincode && errors.pincode ? 'lp-input--error' : ''}`}
+            ref={pinRef}
+            className={`lp-input lp-focusMotion ${touched.pincode && errors.pincode ? 'lp-input--error' : ''}`}
             value={pincode}
-            onChange={(ev) => setPincode(ev.target.value)}
+            onChange={(ev) => {
+              const digits = String(ev.target.value || '').replace(/\D/g, '').slice(0, 6);
+              setPincode(digits);
+              setTouched((t) => ({ ...t, pincode: true })); // real-time validation feedback
+            }}
             onBlur={() => setTouched((t) => ({ ...t, pincode: true }))}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              setTouched((t) => ({ ...t, pincode: true }));
+              if (isValidPincode6(pincode)) {
+                focusWithMotion(bookBtnRef.current);
+              }
+            }}
             placeholder="e.g., 560001"
             inputMode="numeric"
             aria-invalid={Boolean(touched.pincode && errors.pincode)}
@@ -116,7 +187,12 @@ export default function BookingFormCard() {
           {touched.pincode && errors.pincode ? <span className="lp-field__error">{errors.pincode}</span> : null}
         </label>
 
-        <button className="lp-btn lp-btn--primary lp-btn--full" type="submit" disabled={!canSubmit}>
+        <button
+          ref={bookBtnRef}
+          className="lp-btn lp-btn--primary lp-btn--full lp-focusMotion"
+          type="submit"
+          disabled={!canSubmit}
+        >
           Book Now
         </button>
 
