@@ -93,6 +93,148 @@
   gap: 10px;
 }
 
+/* Brand step: search + logo card grid */
+.bf3-brandSearch{
+  margin: 6px 0 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.bf3-inputLabel{
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  font-size: 13px;
+  color: rgba(17,24,39,0.80);
+}
+
+.bf3-inputWrap{
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bf3-input{
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(17,24,39,0.12);
+  background: rgba(255,255,255,0.92);
+  padding: 12px 44px 12px 12px;
+  font-weight: 750;
+  color: rgba(17,24,39,0.86);
+  transition: box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.bf3-input::placeholder{
+  color: rgba(17,24,39,0.45);
+}
+
+.bf3-input:focus{
+  outline: none;
+  border-color: rgba(37,99,235,0.24);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.14);
+}
+
+.bf3-input:disabled{
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.bf3-inputClear{
+  appearance: none;
+  border: none;
+  background: transparent;
+  position: absolute;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: rgba(17,24,39,0.55);
+  font-size: 22px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.bf3-inputClear:hover{
+  background: rgba(17,24,39,0.06);
+  color: rgba(17,24,39,0.78);
+}
+
+.bf3-brandGrid{
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bf3-brandCard{
+  appearance: none;
+  border: 1px solid rgba(17,24,39,0.12);
+  background: rgba(255,255,255,0.92);
+  border-radius: 16px;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 12px;
+  align-items: center;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease;
+}
+
+.bf3-brandCard:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+  border-color: rgba(37,99,235,0.22);
+}
+
+.bf3-brandCard:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.18);
+}
+
+.bf3-brandCard:disabled{
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.bf3-brandCard__logo{
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid rgba(17,24,39,0.10);
+  display: grid;
+  place-items: center;
+}
+
+.bf3-brandCard__logoText{
+  font-weight: 950;
+  letter-spacing: -0.04em;
+  color: rgba(17,24,39,0.78);
+  font-size: 18px;
+}
+
+.bf3-brandCard__name{
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: rgba(17,24,39,0.88);
+}
+
+.bf3-brandCard__meta{
+  margin-top: 4px;
+  font-weight: 850;
+  font-size: 12px;
+  color: rgba(17,24,39,0.62);
+}
+
+.bf3-brandCard.is-selected{
+  border-color: rgba(245,158,11,0.32);
+  background: linear-gradient(180deg, rgba(245,158,11,0.10), rgba(255,255,255,0.95));
+}
+
 .bf3-choice{
   appearance: none;
   border: 1px solid rgba(17,24,39,0.12);
@@ -172,9 +314,11 @@
 
 @media (max-width: 980px){
   .bf3-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bf3-brandGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px){
   .bf3-progress{ grid-template-columns: 1fr; }
   .bf3-grid{ grid-template-columns: 1fr; }
+  .bf3-brandGrid{ grid-template-columns: 1fr; }
 }

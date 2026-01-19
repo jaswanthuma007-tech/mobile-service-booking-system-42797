@@ -25,6 +25,44 @@ function buildQuery(params) {
   return s ? `?${s}` : '';
 }
 
+/**
+ * Derive a nice-looking logo placeholder for a brand when we don't have real assets.
+ * This keeps the UI consistent without adding binary assets to the repo.
+ * @param {string} brandName
+ * @returns {{ initials: string, hue: number }}
+ */
+function deriveBrandMark(brandName) {
+  const name = String(brandName || '').trim();
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
+
+  // Simple deterministic hash -> hue (0..359)
+  let hash = 0;
+  for (let i = 0; i < name.length; i += 1) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  }
+  const hue = hash % 360;
+  return { initials: initials || '•', hue };
+}
+
+/**
+ * Provide a clearer message for common fetch/network failures, avoiding generic "Failed to fetch".
+ * @param {any} e
+ * @param {string} fallback
+ * @returns {string}
+ */
+function toUserFacingError(e, fallback) {
+  const msg = e?.message ? String(e.message) : '';
+  if (/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg)) {
+    return 'Unable to reach the booking server. Please check your connection and try again.';
+  }
+  return msg || fallback;
+}
+
 // PUBLIC_INTERFACE
 export default function BookingSteps() {
   /** Single-page 3-step selection flow: Brand -> Model -> Service, then routes to existing BookingFlow with prefills. */
@@ -39,6 +77,8 @@ export default function BookingSteps() {
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [selectedModelId, setSelectedModelId] = useState('');
   const [selectedProblemId, setSelectedProblemId] = useState('');
+
+  const [brandSearch, setBrandSearch] = useState('');
 
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
@@ -61,6 +101,12 @@ export default function BookingSteps() {
     () => problems.find((p) => String(p.id) === String(selectedProblemId)),
     [problems, selectedProblemId]
   );
+
+  const filteredBrands = useMemo(() => {
+    const q = String(brandSearch || '').trim().toLowerCase();
+    if (!q) return brands || [];
+    return (brands || []).filter((b) => String(b.name || '').toLowerCase().includes(q));
+  }, [brands, brandSearch]);
 
   const canGoNext = useMemo(() => {
     if (stepIndex === 0) return Boolean(selectedBrandId);
@@ -96,7 +142,7 @@ export default function BookingSteps() {
         setBrands(b || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e?.message || 'Failed to load brands.');
+        setError(toUserFacingError(e, 'Failed to load brands.'));
       } finally {
         if (!cancelled) setLoadingBrands(false);
       }
@@ -127,7 +173,7 @@ export default function BookingSteps() {
         setModels(m || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e?.message || 'Failed to load models.');
+        setError(toUserFacingError(e, 'Failed to load models.'));
       } finally {
         if (!cancelled) setLoadingModels(false);
       }
@@ -157,7 +203,7 @@ export default function BookingSteps() {
         setProblems(p || []);
       } catch (e) {
         if (cancelled) return;
-        setError(e?.message || 'Failed to load problems.');
+        setError(toUserFacingError(e, 'Failed to load problems.'));
       } finally {
         if (!cancelled) setLoadingProblemsState(false);
       }
@@ -171,7 +217,7 @@ export default function BookingSteps() {
 
   function handleSelectBrand(id) {
     setSelectedBrandId(String(id));
-    // Auto-advance to model step
+    // Auto-advance to model step (models fetch will run in the background via effect)
     goToStep(1);
   }
 
@@ -247,28 +293,76 @@ export default function BookingSteps() {
             <div className="bf3-panel__head">
               <h3 style={{ margin: 0 }}>1) Select Brand</h3>
               <p style={{ margin: '6px 0 0', color: 'rgba(17, 24, 39, 0.62)' }}>
-                {loadingBrands ? 'Loading brands…' : 'Tap a brand to continue.'}
+                {loadingBrands ? 'Loading brands…' : 'Search and tap a brand to continue.'}
               </p>
             </div>
 
-            <div className="bf3-grid" role="list">
-              {(brands || []).map((b) => {
-                const active = String(b.id) === String(selectedBrandId);
-                return (
+            <div className="bf3-brandSearch">
+              <label className="bf3-inputLabel" htmlFor="brand-search">
+                Search brands
+              </label>
+              <div className="bf3-inputWrap">
+                <input
+                  id="brand-search"
+                  className="bf3-input"
+                  type="text"
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  placeholder={loadingBrands ? 'Loading…' : 'Type e.g., Apple, Samsung…'}
+                  disabled={loadingBrands}
+                  autoComplete="off"
+                />
+                {brandSearch ? (
                   <button
-                    key={b.id}
                     type="button"
-                    className={`bf3-choice ${active ? 'is-selected' : ''}`}
-                    onClick={() => handleSelectBrand(b.id)}
-                    role="listitem"
-                    aria-pressed={active}
-                    disabled={loadingBrands}
+                    className="bf3-inputClear"
+                    onClick={() => setBrandSearch('')}
+                    aria-label="Clear brand search"
                   >
-                    <span className="bf3-choice__title">{b.name}</span>
-                    <span className="bf3-choice__meta">{active ? 'Selected' : 'Select'}</span>
+                    ×
                   </button>
-                );
-              })}
+                ) : null}
+              </div>
+            </div>
+
+            <div className="bf3-brandGrid" role="list" aria-label="Brand list">
+              {loadingBrands ? (
+                <div className="bf3-empty">Loading brands…</div>
+              ) : filteredBrands.length === 0 ? (
+                <div className="bf3-empty">No brands match your search.</div>
+              ) : (
+                filteredBrands.map((b) => {
+                  const active = String(b.id) === String(selectedBrandId);
+                  const { initials, hue } = deriveBrandMark(b.name);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      className={`bf3-brandCard ${active ? 'is-selected' : ''}`}
+                      onClick={() => handleSelectBrand(b.id)}
+                      role="listitem"
+                      aria-pressed={active}
+                      disabled={loadingBrands}
+                    >
+                      <div
+                        className="bf3-brandCard__logo"
+                        aria-hidden="true"
+                        style={{
+                          background: `linear-gradient(180deg, hsla(${hue}, 90%, 56%, 0.18), rgba(255,255,255,0.90))`,
+                          borderColor: `hsla(${hue}, 90%, 56%, 0.30)`
+                        }}
+                      >
+                        <span className="bf3-brandCard__logoText">{initials}</span>
+                      </div>
+
+                      <div className="bf3-brandCard__body">
+                        <div className="bf3-brandCard__name">{b.name}</div>
+                        <div className="bf3-brandCard__meta">{active ? 'Selected' : 'Tap to select'}</div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </section>
 
