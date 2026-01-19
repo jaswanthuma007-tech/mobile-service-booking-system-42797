@@ -8,6 +8,8 @@ import BookingConfirmation from './pages/BookingConfirmation';
 import AdminDashboard from './pages/AdminDashboard';
 import TrackStatus from './pages/TrackStatus';
 import StoreLocator from './pages/StoreLocator';
+import Profile from './pages/Profile';
+import Orders from './pages/Orders';
 
 // PUBLIC_INTERFACE
 function App() {
@@ -24,6 +26,9 @@ function App() {
         <Route path="/store-locator" element={<StoreLocator />} />
 
         <Route path="/admin" element={<AdminDashboard />} />
+
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/orders" element={<Orders />} />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

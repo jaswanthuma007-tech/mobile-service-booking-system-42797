@@ -195,7 +195,13 @@
   background: rgba(11,18,32,0.86);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255,255,255,0.10);
+  transition: background-color 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
+
+.lp-header--premium{
+  box-shadow: 0 10px 30px rgba(0,0,0,0.14);
+}
+
 .lp-header__inner{
   display:flex;
   align-items:center;
@@ -270,14 +276,136 @@
   border-radius: 999px;
 }
 
-/* Mobile nav */
+/* Dropdown */
+.lp-dd{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lp-dd__trigger{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.lp-dd__chev{
+  font-size: 12px;
+  opacity: 0.85;
+  transform: translateY(0.5px);
+  transition: transform 160ms ease;
+}
+
+.lp-dd__trigger.is-open .lp-dd__chev{
+  transform: rotate(180deg) translateY(-0.5px);
+}
+
+.lp-dd__menu{
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 220px;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(11,18,32,0.96);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.lp-dd__menu.is-open{
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.lp-dd__item{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration:none;
+  color: rgba(255,255,255,0.84);
+  font-weight: 850;
+  font-size: 13px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.lp-dd__item:hover{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(245,158,11,0.22);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.lp-dd__sep{
+  height: 1px;
+  margin: 8px 6px;
+  background: rgba(255,255,255,0.10);
+}
+
+/* Mobile nav (drawer overlay) */
 .lp-mobileNav{
   display:none;
   background: rgba(11,18,32,0.96);
   border-top: 1px solid rgba(255,255,255,0.08);
 }
-.lp-mobileNav.is-open{ display:block; }
-.lp-mobileNav__inner{ padding: 14px 18px 18px; }
+
+.lp-mobileNav--overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: block;
+  background: transparent;
+  border-top: none;
+  pointer-events: none;
+}
+
+.lp-mobileNav--overlay.is-open{
+  pointer-events: auto;
+}
+
+.lp-mobileNav__scrim{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.lp-mobileNav--overlay.is-open .lp-mobileNav__scrim{
+  opacity: 1;
+}
+
+.lp-mobileNav__panel{
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, calc(100vw - 42px));
+  background: rgba(11,18,32,0.98);
+  border-left: 1px solid rgba(255,255,255,0.10);
+  box-shadow: -18px 0 50px rgba(0,0,0,0.35);
+  transform: translateX(10px);
+  opacity: 0;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.lp-mobileNav--overlay.is-open .lp-mobileNav__panel{
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.lp-mobileNav__inner{ padding: 14px 18px 18px; height: 100%; overflow: auto; }
 .lp-mobileNav__top{
   display:flex;
   align-items:center;
@@ -299,8 +427,42 @@
   font-weight: 800;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
 }
 .lp-mobileNav__link:hover{ background: rgba(255,255,255,0.08); color: white; }
+
+.lp-mobileNav__ddBtn{
+  cursor: pointer;
+}
+
+.lp-mobileNav__dd{
+  margin-top: -2px;
+  margin-bottom: 8px;
+  display: none;
+  padding-left: 8px;
+  border-left: 2px solid rgba(245,158,11,0.22);
+}
+
+.lp-mobileNav__dd.is-open{
+  display: grid;
+  gap: 8px;
+}
+
+.lp-mobileNav__subLink{
+  padding: 10px 12px;
+  border-radius: 12px;
+  text-decoration:none;
+  color: rgba(255,255,255,0.80);
+  font-weight: 800;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+.lp-mobileNav__subLink:hover{
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
 .lp-mobileNav__cta{ margin-top: 12px; }
 
 /* Social */
