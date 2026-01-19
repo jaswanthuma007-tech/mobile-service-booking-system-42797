@@ -103,12 +103,15 @@ function buildBrandCandidates(brandKey) {
    */
 
   // Primary (specified) endpoints:
-  // TODO: These URLs must match the authoritative user-provided CDN endpoints.
-  // They were referenced in an attachment, but did not include the actual URLs. Keeping placeholders
-  // is not acceptable long-term; replace these with the real endpoints when available.
-  const PRIMARY_APPLE_IPHONE_URL = 'https://example-cdn.invalid/iphone.png';
-  const PRIMARY_SAMSUNG_URL = 'https://example-cdn.invalid/samsung.png';
-  const PRIMARY_ONEPLUS_URL = 'https://example-cdn.invalid/oneplus.png';
+  const PRIMARY_APPLE_IPHONE_URL = 'https://cdn.dxomark.com/wp-content/uploads/medias/post-122599/Apple-iPhone-14-Pro-front.png';
+  const PRIMARY_SAMSUNG_URL = 'https://cdn.dxomark.com/wp-content/uploads/medias/post-122928/Samsung-Galaxy-S23-Ultra-front.png';
+  const PRIMARY_ONEPLUS_URL = 'https://cdn.dxomark.com/wp-content/uploads/medias/post-122864/OnePlus-11-front.png';
+
+  // Brand-specific fallback endpoints (user-provided).
+  // These are tried immediately after primary before any generic resilience sources.
+  const FALLBACK_APPLE_IPHONE_URL = 'https://www.gizmochina.com/wp-content/uploads/2022/09/iPhone-14-Pro-Front.png';
+  const FALLBACK_SAMSUNG_URL = 'https://www.gizmochina.com/wp-content/uploads/2023/02/Samsung-Galaxy-S23-Ultra-front.png';
+  const FALLBACK_ONEPLUS_URL = 'https://www.gizmochina.com/wp-content/uploads/2023/01/OnePlus-11-front.png';
 
   // Secondary resilience sources (public CDNs).
   // DeviceFrames (SVG device frames) - stable and transparent.
@@ -120,6 +123,7 @@ function buildBrandCandidates(brandKey) {
     case 'apple':
       return [
         PRIMARY_APPLE_IPHONE_URL,
+        FALLBACK_APPLE_IPHONE_URL,
 
         // Resilience candidates:
         `${basicPixelsBase}/devices/Apple%20iPhone%2015%20Pro.png`,
@@ -130,6 +134,7 @@ function buildBrandCandidates(brandKey) {
     case 'samsung':
       return [
         PRIMARY_SAMSUNG_URL,
+        FALLBACK_SAMSUNG_URL,
 
         // Resilience candidates:
         `${basicPixelsBase}/devices/Samsung%20Galaxy%20S24%20Ultra.png`,
@@ -140,6 +145,7 @@ function buildBrandCandidates(brandKey) {
     case 'oneplus':
       return [
         PRIMARY_ONEPLUS_URL,
+        FALLBACK_ONEPLUS_URL,
 
         // Resilience candidates (not guaranteed in public repos; kept best-effort):
         `${basicPixelsBase}/devices/OnePlus%2012.png`,
