@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { trackBooking } from '../api/client';
+import { getApiStatus, trackBooking } from '../api/client';
 import { AppShell, Alert, Button, Card, TextInput } from '../components/UI';
 
 const TIMELINE_STEPS = [
@@ -111,6 +111,8 @@ export default function TrackStatus() {
   const [error, setError] = useState('');
   const [trackData, setTrackData] = useState(null);
 
+  const apiStatus = useMemo(() => getApiStatus(), []);
+
   const canTrack = useMemo(() => /^\d{1,10}$/.test(String(bookingId || '').trim()), [bookingId]);
 
   const currentStepKey = useMemo(() => {
@@ -202,6 +204,17 @@ export default function TrackStatus() {
             </Button>
           </div>
         </div>
+
+        {apiStatus?.autoMockFallbackEnabled ? (
+          <div style={{ marginTop: 12 }}>
+            <Alert variant="secondary" title="Live tracking temporarily unavailable">
+              We couldn’t reach the backend API, so you’re seeing a fallback tracking response.
+              <div style={{ marginTop: 6, fontSize: 13, color: 'rgba(17, 24, 39, 0.75)' }}>
+                API base: <code>{String(apiStatus.apiBase)}</code>
+              </div>
+            </Alert>
+          </div>
+        ) : null}
 
         {error ? (
           <div style={{ marginTop: 12 }}>

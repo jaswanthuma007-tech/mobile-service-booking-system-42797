@@ -2,12 +2,50 @@ import { MOCK_BRANDS, MOCK_MODELS_BY_BRAND_ID, MOCK_PROBLEMS } from './mocks';
 
 const DEFAULT_TIMEOUT_MS = 8000;
 
-// Prefer explicit env overrides, otherwise default to relative /api so CRA proxy can handle dev without CORS.
-const API_BASE =
-  (process.env.REACT_APP_API_BASE_URL ||
+/**
+ * Choose an API base URL.
+ *
+ * Key idea:
+ * - Prefer relative `/api` so CRA proxy can work in dev and same-origin deploys (no CORS).
+ * - Only use absolute URLs when explicitly configured via env AND not pointing to localhost in a non-local environment.
+ *
+ * This prevents production deployments from accidentally trying to call `http://localhost:5000/api`.
+ *
+ * @returns {string}
+ */
+function resolveApiBase() {
+  const raw =
+    process.env.REACT_APP_API_BASE_URL ||
     process.env.REACT_APP_API_BASE ||
     process.env.REACT_APP_BACKEND_URL ||
-    '/api')?.replace(/\/+$/, '') || '/api';
+    '/api';
+
+  const cleaned = String(raw || '').trim().replace(/\/+$/, '') || '/api';
+  const isAbsolute = /^https?:\/\//i.test(cleaned);
+
+  // If user gave an absolute URL pointing to localhost/127.0.0.1, but the app isn't running on localhost,
+  // prefer relative `/api` so the request goes through the current origin / proxy instead.
+  if (isAbsolute) {
+    try {
+      const u = new URL(cleaned);
+      const isLocalHostTarget = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+      const currentHost = (typeof window !== 'undefined' && window.location?.hostname) || '';
+      const isAppOnLocalhost = currentHost === 'localhost' || currentHost === '127.0.0.1';
+
+      if (isLocalHostTarget && !isAppOnLocalhost) {
+        return '/api';
+      }
+    } catch {
+      // If it's malformed but starts with http(s), still return it; fetch will surface an error.
+      return cleaned;
+    }
+  }
+
+  return cleaned;
+}
+
+// Prefer explicit env overrides, otherwise default to relative /api so CRA proxy can handle dev without CORS.
+const API_BASE = resolveApiBase();
 
 const USE_MOCKS_TOGGLE = String(process.env.REACT_APP_USE_MOCKS || '').toLowerCase() === 'true';
 
@@ -165,9 +203,13 @@ async function requestJson(path, options = {}) {
     // Fetch throws TypeError for network/CORS issues.
     const msg = e?.message ? String(e.message) : '';
     if (e instanceof TypeError || /Failed to fetch/i.test(msg) || /NetworkError/i.test(msg) || /Load failed/i.test(msg)) {
+      const baseHint = isAbsoluteUrl(API_BASE) ? API_BASE : '(relative /api via proxy/same-origin)';
       throw createApiError({
         type: 'network',
-        message: `Network error calling ${isAbsoluteUrl(API_BASE) ? API_BASE : 'backend'}.`,
+        message:
+          `Network error calling ${baseHint}. ` +
+          `This usually means the backend is unreachable, CORS is blocked, or the API base URL env is wrong. ` +
+          `Attempted: ${url}`,
         url
       });
     }
@@ -292,5 +334,25 @@ export async function trackBooking(bookingId, options = {}) {
   if (!Number.isFinite(id) || id <= 0) {
     throw new Error('Please enter a valid numeric booking ID.');
   }
-  return requestJson(`/track/${id}`, options);
+
+  // Tracking can gracefully degrade if backend is temporarily unreachable: we return a minimal payload
+  // so UI can still show the booking id and a helpful status message.
+  // (Booking creation/admin operations still fail loudly.)
+  return callWithMockFallback(
+    () => requestJson(`/track/${id}`, options),
+    () => ({
+      booking_id: id,
+      current_status: 'unknown',
+      created_at: new Date().toISOString(),
+      history: [
+        {
+          id: 0,
+          booking_id: id,
+          status: 'unknown',
+          description: 'Live tracking is temporarily unavailable (offline/demo mode). Please try again shortly.',
+          timestamp: new Date().toISOString()
+        }
+      ]
+    })
+  );
 }
